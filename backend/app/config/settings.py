@@ -12,7 +12,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # External APIs
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "AIzaSyCzL3_QfDj9PKBGGoycG8KqQWiuOEqnAnE")
+    OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     
     # CORS
     CORS_ALLOWED_ORIGINS: List[str] = [
@@ -20,6 +20,12 @@ class Settings:
         "http://localhost:8080",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8080",
+        "http://192.168.0.102:3000",
+        "http://192.168.0.102:8080",
+        "http://192.168.56.1:3000",
+        "http://192.168.56.1:8080",
+        "http://192.168.10.1:3000",
+        "http://192.168.10.1:8080",
         "*"  # Allow all origins for development
     ]
     

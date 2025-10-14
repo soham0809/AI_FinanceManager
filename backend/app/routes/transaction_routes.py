@@ -183,6 +183,35 @@ async def create_transaction(
         confidence=transaction.confidence
     )
 
+@router.post("/transactions-public", response_model=TransactionResponse)
+async def create_transaction_public(
+    transaction_data: TransactionCreate,
+    db: Session = Depends(get_db)
+):
+    """Create new transaction manually (backward compatibility)"""
+    transaction = transaction_controller.create_transaction(
+        db=db,
+        vendor=transaction_data.vendor,
+        amount=transaction_data.amount,
+        date=transaction_data.date,
+        transaction_type=transaction_data.transaction_type,
+        category=transaction_data.category,
+        raw_text=transaction_data.raw_text,
+        confidence=transaction_data.confidence
+    )
+    
+    return TransactionResponse(
+        id=transaction.id,
+        vendor=transaction.vendor,
+        amount=transaction.amount,
+        date=transaction.date.isoformat(),
+        transaction_type=transaction.transaction_type,
+        category=transaction.category,
+        success=transaction.success,
+        raw_text=transaction.raw_text,
+        confidence=transaction.confidence
+    )
+
 @router.put("/transactions/{transaction_id}", response_model=TransactionResponse)
 async def update_transaction(
     transaction_id: int,

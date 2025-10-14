@@ -6,24 +6,24 @@ from datetime import datetime
 from app.models.transaction import Transaction, Category
 from app.models.user import User
 from app.utils.sms_parser import SMSParser
-from app.utils.gemini_integration import GeminiAssistant
+from app.utils.ollama_integration import OllamaAssistant
 from app.utils.transaction_deduplicator import TransactionDeduplicator
 
 class TransactionController:
     def __init__(self):
         self.sms_parser = SMSParser()
-        self.gemini_assistant = GeminiAssistant()
+        self.ai_assistant = OllamaAssistant()
         self.deduplicator = TransactionDeduplicator()
     
     def parse_sms(self, db: Session, sms_text: str, user_id: Optional[int] = None) -> Dict[str, Any]:
         """Parse SMS and create transaction"""
         try:
-            # First try Gemini AI parsing
-            if self.gemini_assistant.initialized:
-                gemini_result = self.gemini_assistant.parse_sms_transaction(sms_text)
+            # First try Ollama AI parsing
+            if self.ai_assistant.initialized:
+                ai_result = self.ai_assistant.parse_sms_transaction(sms_text)
                 
-                if gemini_result['success']:
-                    transaction_data = gemini_result['transaction_data']
+                if ai_result['success']:
+                    transaction_data = ai_result['transaction_data']
                     
                     # Format date properly if provided
                     if transaction_data.get('date') and transaction_data['date'] != 'null':
@@ -54,15 +54,13 @@ class TransactionController:
                     # Create transaction
                     transaction = self.create_transaction(
                         db=db,
-                        user_id=user_id,
                         vendor=duplicate_check_data['vendor'],
                         amount=duplicate_check_data['amount'],
                         date=date_str,
                         transaction_type=duplicate_check_data['transaction_type'],
                         category=duplicate_check_data['category'],
                         raw_text=sms_text,
-                        confidence=confidence_score,
-                        transaction_id=duplicate_check_data['transaction_id']
+                        confidence=confidence_score
                     )
                     
                     # Add to deduplicator
@@ -71,12 +69,12 @@ class TransactionController:
                     return {
                         'success': True,
                         'transaction': transaction,
-                        'method': 'gemini_ai'
+                        'method': 'ollama_ai'
                     }
                 else:
                     # Check if rejected as promotional
-                    if gemini_result.get('is_promotional'):
-                        raise ValueError(f"Promotional message: {gemini_result.get('error')}")
+                    if ai_result.get('is_promotional'):
+                        raise ValueError(f"Promotional message: {ai_result.get('error')}")
             
             # Fallback to regex parsing
             parsed_result = self.sms_parser.parse_transaction(sms_text)
@@ -84,7 +82,6 @@ class TransactionController:
             if parsed_result['success']:
                 transaction = self.create_transaction(
                     db=db,
-                    user_id=user_id,
                     vendor=parsed_result['vendor'],
                     amount=parsed_result['amount'],
                     date=parsed_result['date'],
@@ -116,30 +113,43 @@ class TransactionController:
         transaction_type: str,
         category: str,
         raw_text: str,
-        confidence: float = 0.0,
-        user_id: Optional[int] = None,
-        transaction_id: Optional[str] = None
+        confidence: float = 0.0
     ) -> Transaction:
         """Create a new transaction"""
         try:
-            # Parse date string to datetime
+            # Parse date string to datetime with flexible format handling
             if isinstance(date, str):
-                transaction_date = datetime.strptime(date, '%Y-%m-%d')
+                try:
+                    # Try ISO format first (from mobile app)
+                    if 'T' in date:
+                        # Remove microseconds if present
+                        date_clean = date.split('.')[0] if '.' in date else date
+                        transaction_date = datetime.fromisoformat(date_clean.replace('T', ' '))
+                    else:
+                        # Try standard date format
+                        transaction_date = datetime.strptime(date, '%Y-%m-%d')
+                except ValueError:
+                    # Fallback to current date if parsing fails
+                    transaction_date = datetime.now()
             else:
                 transaction_date = date
             
+            # Validate date - if it's in the future, adjust it to current year
+            current_year = datetime.now().year
+            if transaction_date.year > current_year:
+                # If year is 2026 or later, assume it should be current year
+                transaction_date = transaction_date.replace(year=current_year)
+            
             transaction = Transaction(
-                user_id=user_id,
                 vendor=vendor,
                 amount=amount,
                 date=transaction_date,
                 transaction_type=transaction_type,
                 category=category,
                 raw_text=raw_text,
-                confidence=confidence,
-                transaction_id=transaction_id,
-                success=True
+                confidence=confidence
             )
+            transaction.success = True
             
             db.add(transaction)
             db.commit()
@@ -160,8 +170,9 @@ class TransactionController:
         """Get transactions with optional user filtering"""
         query = db.query(Transaction)
         
-        if user_id:
-            query = query.filter(Transaction.user_id == user_id)
+        # User filtering disabled for backward compatibility
+        # if user_id:
+        #     query = query.filter(Transaction.user_id == user_id)
         
         return query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
     
@@ -169,8 +180,9 @@ class TransactionController:
         """Get transaction by ID"""
         query = db.query(Transaction).filter(Transaction.id == transaction_id)
         
-        if user_id:
-            query = query.filter(Transaction.user_id == user_id)
+        # User filtering disabled for backward compatibility
+        # if user_id:
+        #     query = query.filter(Transaction.user_id == user_id)
         
         transaction = query.first()
         if not transaction:
@@ -220,8 +232,9 @@ class TransactionController:
             )
         )
         
-        if user_id:
-            search_query = search_query.filter(Transaction.user_id == user_id)
+        # User filtering disabled for backward compatibility
+        # if user_id:
+        #     search_query = search_query.filter(Transaction.user_id == user_id)
         
         return search_query.order_by(Transaction.date.desc()).limit(limit).all()
     

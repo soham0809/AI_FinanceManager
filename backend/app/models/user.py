@@ -1,5 +1,6 @@
 """User model for authentication"""
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.config.database import Base
 
@@ -15,6 +16,9 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationship disabled for backward compatibility
+    # transactions = relationship("Transaction", back_populates="user")
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, username={self.username})>"

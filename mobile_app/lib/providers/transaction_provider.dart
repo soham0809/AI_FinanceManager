@@ -90,11 +90,11 @@ class TransactionProvider with ChangeNotifier {
 
   // Check server connection
   Future<void> checkConnection() async {
+    _isLoading = true;
+    _error = null;
+    // Don't notify listeners immediately to avoid build phase conflicts
+    
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
       final healthData = await apiService.healthCheck();
       _isConnected = healthData['status'] == 'healthy';
       
@@ -106,17 +106,18 @@ class TransactionProvider with ChangeNotifier {
       _isConnected = false;
     } finally {
       _isLoading = false;
+      // Only notify listeners once at the end
       notifyListeners();
     }
   }
 
   // Fetch all transactions from server
   Future<void> fetchTransactions() async {
+    _isLoading = true;
+    _error = null;
+    // Don't notify listeners immediately to avoid build phase conflicts
+    
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
       final fetchedTransactions = await apiService.getTransactions();
       _transactions.clear(); // Clear existing transactions
       _transactions.addAll(fetchedTransactions); // Add all fetched transactions
@@ -124,16 +125,18 @@ class TransactionProvider with ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      // Only notify listeners once at the end
       notifyListeners();
     }
   }
 
   // Parse SMS and add transaction
   Future<Map<String, dynamic>> parseSms(String smsText) async {
+    _isLoading = true;
+    _error = null;
+    // Don't notify listeners immediately to avoid build phase conflicts
+    
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
 
       final response = await apiService.parseSms(smsText);
       
@@ -159,8 +162,6 @@ class TransactionProvider with ChangeNotifier {
         }
         
         _transactions.insert(0, transaction);
-        // Notify listeners immediately after adding transaction
-        notifyListeners();
       }
       
       return response;
@@ -169,6 +170,7 @@ class TransactionProvider with ChangeNotifier {
       return {'success': false, 'error': e.toString()};
     } finally {
       _isLoading = false;
+      // Only notify listeners once at the end
       notifyListeners();
     }
   }

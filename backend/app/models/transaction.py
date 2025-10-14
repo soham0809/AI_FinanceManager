@@ -8,7 +8,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Optional for now
+    # user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Disabled for backward compatibility
     vendor = Column(String(255), nullable=False)
     amount = Column(Float, nullable=False)
     date = Column(DateTime, nullable=False)
@@ -17,12 +17,12 @@ class Transaction(Base):
     success = Column(Boolean, default=True)
     raw_text = Column(Text, nullable=True)
     confidence = Column(Float, default=0.0)
-    transaction_id = Column(String(255), nullable=True)  # UPI ref, etc.
+    # transaction_id = Column(String(255), nullable=True)  # UPI ref, etc. - Not in existing DB
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationship
-    user = relationship("User", back_populates="transactions")
+    # Relationship disabled for backward compatibility
+    # user = relationship("User", back_populates="transactions", lazy="select")
     
     def __repr__(self):
         return f"<Transaction(id={self.id}, vendor={self.vendor}, amount={self.amount})>"

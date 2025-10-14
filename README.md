@@ -1,169 +1,121 @@
-# AI Financial Co-Pilot for Students
+# AI Financial Co-Pilot
 
-An intelligent financial assistant that automatically tracks expenses through SMS parsing using **Gemini AI** and provides predictive insights for better financial management.
+A comprehensive financial management application with AI-powered SMS transaction parsing using local Ollama LLM, expense tracking, and intelligent financial insights.
 
-## Key Features
+## Features
 
-- **Zero-Touch Expense Tracking**: Automatically captures spending data by parsing transaction SMS alerts from banks and UPI apps
-- **Gemini AI-Powered SMS Parsing**: Uses Google's Gemini AI for intelligent transaction extraction and categorization
-- **Smart Duplicate Detection**: Prevents duplicate transactions from multiple SMS notifications
-- **Promotional Message Filtering**: Automatically filters out non-transaction promotional messages
-- **Real-time Analytics**: Visual insights with charts and spending analytics using live transaction data
-- **Confidence-based Filtering**: Only processes high-confidence transactions (70%+ accuracy)
+### Core Features
+- **AI-Powered SMS Parsing**: Automatically extract transaction details from bank SMS messages using local Ollama LLM
+- **Smart Transaction Categorization**: Intelligent categorization of expenses and income
+- **Real-time Analytics**: Comprehensive financial analytics and insights
+- **Expense Tracking**: Track and manage personal and group expenses
+- **Duplicate Detection**: Advanced duplicate transaction detection and prevention
+- **Local AI Processing**: Privacy-focused local LLM processing with Ollama
 
-## Tech Stack
+### Advanced Features
+- **Group Expense Management**: Split bills and manage shared expenses
+- **Predictive Analytics**: ML-powered spending predictions and trends
+- **Financial Health Score**: Comprehensive financial wellness assessment
+- **Multi-platform Support**: Web dashboard and mobile app
+- **Secure Authentication**: JWT-based secure user authentication
 
-- **Frontend**: Flutter (Cross-platform mobile app)
-- **Backend**: Python FastAPI with Gemini AI integration
-- **Database**: SQLite with SQLAlchemy ORM
-- **AI/ML**: Google Gemini AI, scikit-learn for ML categorization
-- **SMS Processing**: Advanced regex patterns + AI-powered parsing
-- **Analytics**: Real-time transaction analysis and insights
+## Technology Stack
+
+### Backend
+- **FastAPI**: Modern, fast web framework for building APIs
+- **SQLAlchemy**: SQL toolkit and Object-Relational Mapping
+- **SQLite**: Lightweight database for development
+- **Ollama**: Local LLM for intelligent SMS parsing (llama3.1:latest)
+- **Scikit-learn**: Machine learning for categorization and predictions
+- **Pandas**: Data manipulation and analysis
+
+### Frontend (Mobile App)
+- **Flutter**: Cross-platform mobile development framework
+- **Dart**: Programming language for Flutter
+- **HTTP Package**: For API communication
+
+## Installation & Setup
+
+### Prerequisites
+- Python 3.8+
+- Flutter SDK (for mobile app)
+- Ollama with llama3.1:latest model
+
+### Ollama Setup
+1. Install Ollama from [https://ollama.ai](https://ollama.ai)
+2. Pull the required model: `ollama pull llama3.1:latest`
+3. Start Ollama: `ollama serve`
+
+### Backend Setup
+1. Clone the repository
+2. Navigate to backend directory
+3. Create virtual environment: `python -m venv venv`
+4. Activate virtual environment: `venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Linux/Mac)
+5. Install dependencies: `pip install -r requirements.txt`
+6. Run the server: `python -m uvicorn app.main:app --reload`
+
+### Mobile App Setup
+1. Navigate to mobile_app directory
+2. Install dependencies: `flutter pub get`
+3. Run the app: `flutter run`
+
+## API Documentation
+
+Once the backend is running, visit `http://localhost:8000/docs` for interactive API documentation.
+
+### Key Endpoints
+- `POST /v1/parse-sms`: Parse SMS transaction using Ollama AI
+- `GET /v1/transactions`: Get user transactions
+- `POST /v1/transactions`: Create new transaction
+- `GET /v1/analytics/summary`: Get financial summary
+- `POST /v1/auth/register`: User registration
+- `POST /v1/auth/login`: User login
+
+## Testing
+
+Test the Ollama integration:
+```bash
+python test_ollama_integration.py
+python test_database_data.py
+```
+
+## Configuration
+
+### Environment Variables
+- `OLLAMA_HOST`: Ollama server URL (default: http://localhost:11434)
+- `SECRET_KEY`: JWT secret key
+- `DATABASE_URL`: Database connection string
+
+### Settings
+Configure settings in `backend/app/config/settings.py`
 
 ## Project Structure
 
 ```
-final_year/
-├── mobile_app/          # Flutter mobile application
-│   ├── lib/
-│   │   ├── models/      # Data models (Transaction, etc.)
-│   │   ├── providers/   # State management
-│   │   ├── screens/     # UI screens
-│   │   ├── services/    # API services
-│   │   └── widgets/     # Reusable UI components
-├── backend/             # Python FastAPI server
-│   ├── main.py          # FastAPI application
-│   ├── database.py      # Database models and operations
-│   ├── gemini_integration.py  # Gemini AI SMS parsing
-│   ├── transaction_deduplicator.py  # Duplicate detection
-│   ├── sms_parser.py    # Regex-based SMS parsing (fallback)
-│   └── requirements.txt # Python dependencies
+├── backend/
+│   ├── app/
+│   │   ├── config/          # Configuration files
+│   │   ├── controllers/     # Business logic
+│   │   ├── models/          # Database models
+│   │   ├── routes/          # API routes
+│   │   ├── utils/           # Utility functions (including Ollama integration)
+│   │   └── main.py          # FastAPI application
+│   └── requirements.txt
+├── mobile_app/              # Flutter mobile application
+├── test_ollama_integration.py
+├── test_database_data.py
 └── README.md
 ```
 
-## Complete Setup Instructions
+## Usage Example
 
-### Prerequisites
-
-- **Flutter SDK** (latest stable version)
-- **Python 3.8+**
-- **Git**
-- **Gemini API Key** (already configured: `AIzaSyCzL3_QfDj9PKBGGoycG8KqQWiuOEqnAnE`)
-
-### Step-by-Step Setup
-
-#### 1. Clone and Navigate
 ```bash
-git clone <repository-url>
-cd final_year
+# Test SMS parsing
+curl -X POST "http://localhost:8000/v1/parse-sms" \
+  -H "Content-Type: application/json" \
+  -d '{"sms_text":"HDFC Bank: Rs.1,250.50 debited from A/c **1234 at AMAZON PAY INDIA on 15-09-2024"}'
 ```
 
-#### 2. Backend Setup
-```bash
-# Navigate to backend directory
-cd backend
+## License
 
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the backend server
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Backend will be available at:** `http://localhost:8000`
-
-#### 3. Mobile App Setup
-```bash
-# Navigate to mobile app directory (from project root)
-cd mobile_app
-
-# Get Flutter dependencies
-flutter pub get
-
-# Generate model files
-flutter packages pub run build_runner build
-
-# Run on physical device (recommended) or emulator
-flutter run
-```
-
-#### 4. Network Configuration
-
-**For Physical Device Testing:**
-- Ensure your computer and phone are on the same WiFi network
-- Update `baseUrl` in `lib/services/api_service.dart` with your computer's IP address
-- Current configuration: `http://192.168.0.102:8000`
-
-**For Windows Firewall (if needed):**
-```cmd
-# Run as Administrator
-netsh advfirewall firewall add rule name="Python Backend" dir=in action=allow protocol=TCP localport=8000
-```
-
-### Running the Complete System
-
-1. **Start Backend Server:**
-   ```bash
-   cd backend
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-2. **Start Mobile App:**
-   ```bash
-   cd mobile_app
-   flutter run
-   ```
-
-3. **Test SMS Parsing:**
-   ```bash
-   # Test with real transaction SMS
-   curl -X POST "http://localhost:8000/v1/parse-sms" \
-   -H "Content-Type: application/json" \
-   -d '{"sms_text":"HDFC Bank: Rs.1,250.50 debited from A/c **1234 at AMAZON PAY INDIA on 15-09-2024"}'
-   ```
-
-## Features Implemented
-
-- [x] **Phase 1**: SMS Data Capture & Gemini AI Parsing
-- [x] **Phase 2**: Database & Transaction History with SQLAlchemy
-- [x] **Phase 3**: AI Smart Categorization with Gemini AI
-- [x] **Phase 4**: UI/UX & Real-time Data Visualization
-- [x] **Phase 5**: Duplicate Detection & Promotional Message Filtering
-- [x] **Phase 6**: Confidence-based Transaction Validation
-
-## API Endpoints
-
-- `GET /health` - Health check
-- `POST /v1/parse-sms` - Parse SMS transaction with Gemini AI
-- `GET /v1/transactions` - Get all transactions
-- `GET /v1/analytics/*` - Various analytics endpoints
-
-## Key Components
-
-### Gemini AI Integration
-- **File**: `backend/gemini_integration.py`
-- **Purpose**: Intelligent SMS parsing and transaction validation
-- **Features**: Promotional message filtering, confidence scoring
-
-### Duplicate Detection
-- **File**: `backend/transaction_deduplicator.py`
-- **Purpose**: Prevent duplicate transactions from multiple SMS
-- **Methods**: Transaction ID matching, hash-based detection, similarity analysis
-
-### Mobile App Architecture
-- **State Management**: Provider pattern
-- **API Communication**: HTTP service with offline fallback
-- **UI**: Material Design with custom widgets
-
-## Contributors
-
-Built as a final year project for AI-powered financial management.
+This project is licensed under the MIT License.

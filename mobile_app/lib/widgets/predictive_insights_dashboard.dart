@@ -57,15 +57,19 @@ class _PredictiveInsightsDashboardState extends State<PredictiveInsightsDashboar
         'budget_status': _getBudgetStatus(totalSpent, monthlyForecast),
       };
 
-      setState(() {
-        _forecasts = forecasts;
-        _insights = insights;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _forecasts = forecasts;
+          _insights = insights;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load predictions: $e')),
       );
@@ -139,9 +143,11 @@ class _PredictiveInsightsDashboardState extends State<PredictiveInsightsDashboar
         SnackBar(content: Text('Failed to train models: $e')),
       );
     } finally {
-      setState(() {
-        _modelsTraining = false;
-      });
+      if (mounted) {
+        setState(() {
+          _modelsTraining = false;
+        });
+      }
     }
   }
 
@@ -161,9 +167,11 @@ class _PredictiveInsightsDashboardState extends State<PredictiveInsightsDashboar
           currentExpenses: result['expenses']!,
         );
 
-        setState(() {
-          _savingsGoal = goal;
-        });
+        if (mounted) {
+          setState(() {
+            _savingsGoal = goal;
+          });
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

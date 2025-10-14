@@ -4,6 +4,7 @@ part 'transaction.g.dart';
 
 @JsonSerializable()
 class Transaction {
+  @JsonKey(fromJson: _idFromJson, toJson: _idToJson)
   final String? id; // Make id nullable to handle backend responses
   final String vendor;
   final double amount;
@@ -67,4 +68,14 @@ class Transaction {
       confidence: confidence ?? this.confidence,
     );
   }
+}
+
+// Helper functions for id conversion
+String? _idFromJson(dynamic value) {
+  if (value == null) return null;
+  return value.toString();
+}
+
+dynamic _idToJson(String? id) {
+  return id;
 }

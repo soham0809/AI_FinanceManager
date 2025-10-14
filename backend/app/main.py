@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.config.database import engine, Base
-from app.routes import auth_routes, transaction_routes, analytics_routes
+from app.routes import auth_routes, transaction_routes, analytics_routes, batch_routes
 from app.models import user, transaction
 
 # Create database tables
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(auth_routes.router)
 app.include_router(transaction_routes.router)
 app.include_router(analytics_routes.router)
+app.include_router(batch_routes.router)
 
 @app.get("/")
 async def root():

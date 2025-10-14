@@ -19,7 +19,7 @@ class ApiService {
     if (Platform.isAndroid) {
       // For physical Android device, use your computer's actual IP
       // For Android emulator, use 'http://10.0.2.2:8000'
-      return 'http://192.168.0.105:8000';  // Your computer's correct IP for physical device
+      return 'http://192.168.0.102:8000';  // Back to physical device IP
     } else if (Platform.isIOS) {
       // For iOS simulator
       return 'http://localhost:8000';
@@ -29,7 +29,7 @@ class ApiService {
     }
   }
 
-  static const bool offlineMode = false; // Set to true for offline testing
+  static const bool offlineMode = false; // Set to false to use the backend server
   // Health check endpoint
   Future<Map<String, dynamic>> healthCheck() async {
     print('🔍 Attempting to connect to: $baseUrl/health');
@@ -57,7 +57,8 @@ class ApiService {
       // Try alternative URLs for physical device
       final alternativeUrls = [
         'http://192.168.0.105:8000', // Your computer's actual IP
-        'http://192.168.0.102:8000', // Previous IP that was being used
+        'http://192.168.56.1:8000',  // Alternative IP
+        'http://192.168.10.1:8000',  // Alternative IP
         'http://10.0.2.2:8000',      // For emulator
         'http://localhost:8000',     // Local testing
         'http://127.0.0.1:8000',     // Alternative localhost
@@ -104,7 +105,7 @@ class ApiService {
     
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/parse-sms'),
+        Uri.parse('$baseUrl/v1/parse-sms-public'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'sms_text': smsText}),
       );
@@ -124,7 +125,7 @@ class ApiService {
   // Get all transactions
   Future<List<Transaction>> getTransactions() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/v1/transactions'));
+      final response = await http.get(Uri.parse('$baseUrl/v1/transactions-public'));
       print('✅ getTransactions response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
@@ -148,7 +149,7 @@ class ApiService {
   Future<Map<String, dynamic>> saveTransaction(Transaction transaction) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/transactions'),
+        Uri.parse('$baseUrl/v1/transactions-public'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(transaction.toJson()),
       );
@@ -208,7 +209,7 @@ class ApiService {
   Future<Map<String, dynamic>> getSpendingByCategory() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/spending-by-category'),
+        Uri.parse('$baseUrl/v1/analytics/spending-by-category-public'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -228,7 +229,7 @@ class ApiService {
   Future<Map<String, dynamic>> getMonthlyTrends() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/monthly-trends'),
+        Uri.parse('$baseUrl/v1/analytics/monthly-trends-public'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -247,7 +248,7 @@ class ApiService {
   Future<Map<String, dynamic>> getSpendingInsights() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/insights'),
+        Uri.parse('$baseUrl/v1/analytics/insights-public'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -267,7 +268,7 @@ class ApiService {
   Future<Map<String, dynamic>> getTopVendors({int limit = 10}) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/top-vendors?limit=$limit'),
+        Uri.parse('$baseUrl/v1/analytics/top-vendors-public?limit=$limit'),
         headers: {'Content-Type': 'application/json'},
       );
 

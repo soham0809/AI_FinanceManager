@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../widgets/analytics_dashboard.dart';
+import '../widgets/enhanced_analytics_dashboard.dart';
 import '../providers/transaction_provider.dart';
 
 class AnalyticsScreen extends StatefulWidget {
@@ -35,9 +35,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with AutomaticKeepAli
           ),
         ],
       ),
-      body: const SingleChildScrollView(
-        child: AnalyticsDashboard(),
-      ),
+      body: const EnhancedAnalyticsDashboard(),
     );
   }
 }

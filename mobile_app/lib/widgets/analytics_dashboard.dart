@@ -20,14 +20,19 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadAnalyticsData();
+    // Defer the data loading to after the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAnalyticsData();
+    });
   }
   
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reload data when dependencies change (like when transactions are updated)
-    _loadAnalyticsData();
+    // Defer the data loading to after the build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAnalyticsData();
+    });
   }
 
   Future<void> _loadAnalyticsData() async {
@@ -382,10 +387,11 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               const SizedBox(width: 16),
               Expanded(
                 flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: categories.asMap().entries.map((entry) {
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: categories.asMap().entries.map((entry) {
                     final index = entry.key;
                     final category = entry.value;
                     return Padding(
@@ -426,6 +432,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                       ),
                     );
                   }).toList(),
+                  ),
                 ),
               ),
             ],
