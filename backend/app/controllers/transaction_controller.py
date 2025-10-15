@@ -8,6 +8,7 @@ from app.models.user import User
 from app.utils.sms_parser import SMSParser
 from app.utils.ollama_integration import OllamaAssistant
 from app.utils.transaction_deduplicator import TransactionDeduplicator
+from app.utils.sms_classifier import classify_and_parse_sms
 
 class TransactionController:
     def __init__(self):
@@ -15,94 +16,173 @@ class TransactionController:
         self.ai_assistant = OllamaAssistant()
         self.deduplicator = TransactionDeduplicator()
     
-    def parse_sms(self, db: Session, sms_text: str, user_id: Optional[int] = None) -> Dict[str, Any]:
-        """Parse SMS and create transaction"""
+    async def parse_sms(self, db: Session, sms_text: str, user_id: Optional[int] = None) -> Dict[str, Any]:
+        """Parse SMS and create transaction using advanced classification"""
         try:
-            # First try Ollama AI parsing
-            if self.ai_assistant.initialized:
-                ai_result = self.ai_assistant.parse_sms_transaction(sms_text)
-                
-                if ai_result['success']:
-                    transaction_data = ai_result['transaction_data']
-                    
-                    # Format date properly if provided
-                    if transaction_data.get('date') and transaction_data['date'] != 'null':
-                        date_str = self.sms_parser.format_date(transaction_data['date'])
-                    else:
-                        date_str = datetime.now().strftime('%Y-%m-%d')
-                    
-                    # Prepare transaction data for duplicate detection
-                    duplicate_check_data = {
-                        'vendor': transaction_data.get('vendor', 'Unknown'),
-                        'amount': float(transaction_data['amount']),
-                        'date': date_str,
-                        'transaction_type': transaction_data.get('transaction_type', 'debit'),
-                        'category': transaction_data.get('category', 'Others'),
-                        'transaction_id': transaction_data.get('transaction_id')
-                    }
-                    
-                    # Apply confidence threshold filtering
-                    confidence_score = float(transaction_data.get('confidence', 0.0))
-                    if confidence_score < 0.7:
-                        raise ValueError(f"Low confidence transaction ({confidence_score:.2f})")
-                    
-                    # Check for duplicates
-                    duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
-                    if duplicate_result['is_duplicate']:
-                        raise ValueError(f"Duplicate transaction: {duplicate_result['reason']}")
-                    
-                    # Create transaction
-                    transaction = self.create_transaction(
-                        db=db,
-                        vendor=duplicate_check_data['vendor'],
-                        amount=duplicate_check_data['amount'],
-                        date=date_str,
-                        transaction_type=duplicate_check_data['transaction_type'],
-                        category=duplicate_check_data['category'],
-                        raw_text=sms_text,
-                        confidence=confidence_score
-                    )
-                    
-                    # Add to deduplicator
-                    self.deduplicator.add_transaction(duplicate_check_data)
-                    
-                    return {
-                        'success': True,
-                        'transaction': transaction,
-                        'method': 'ollama_ai'
-                    }
-                else:
-                    # Check if rejected as promotional
-                    if ai_result.get('is_promotional'):
-                        raise ValueError(f"Promotional message: {ai_result.get('error')}")
+            # Use new advanced SMS classification and parsing
+            parsed_result = await classify_and_parse_sms(sms_text)
             
-            # Fallback to regex parsing
-            parsed_result = self.sms_parser.parse_transaction(sms_text)
+            if parsed_result.get('success') is False:
+                raise ValueError(f"SMS parsing failed: {parsed_result.get('error', 'Unknown error')}")
             
-            if parsed_result['success']:
-                transaction = self.create_transaction(
-                    db=db,
-                    vendor=parsed_result['vendor'],
-                    amount=parsed_result['amount'],
-                    date=parsed_result['date'],
-                    transaction_type=parsed_result['transaction_type'],
-                    category=parsed_result['category'],
-                    raw_text=sms_text,
-                    confidence=parsed_result['confidence']
-                )
-                
-                return {
-                    'success': True,
-                    'transaction': transaction,
-                    'method': 'regex_parser'
-                }
-            else:
-                raise ValueError("Could not parse transaction data from SMS")
+            # Extract transaction data
+            vendor = parsed_result.get('vendor', 'Unknown')
+            amount = float(parsed_result.get('amount', 0))
+            transaction_type = parsed_result.get('transaction_type', 'debit')
+            category = parsed_result.get('category', 'Others')
+            confidence = float(parsed_result.get('confidence', 0.0))
+            
+            # Format date properly if provided
+            date_str = parsed_result.get('date')
+            if not date_str or date_str == 'null':
+                date_str = datetime.now().strftime('%Y-%m-%d')
+            
+            # Apply confidence threshold filtering
+            if confidence < 0.7:
+                raise ValueError(f"Low confidence transaction ({confidence:.2f})")
+            
+            # Prepare transaction data for duplicate detection
+            duplicate_check_data = {
+                'vendor': vendor,
+                'amount': amount,
+                'date': date_str,
+                'transaction_type': transaction_type,
+                'category': category,
+                'transaction_id': parsed_result.get('upi_transaction_id')
+            }
+            
+            # Check for duplicates
+            duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
+            if duplicate_result['is_duplicate']:
+                raise ValueError(f"Duplicate transaction: {duplicate_result['reason']}")
+            
+            # Create transaction with enhanced data
+            transaction = self.create_enhanced_transaction(
+                db=db,
+                vendor=vendor,
+                amount=amount,
+                date=date_str,
+                transaction_type=transaction_type,
+                category=category,
+                raw_text=sms_text,
+                confidence=confidence,
+                parsed_data=parsed_result
+            )
+            
+            # Add to deduplicator
+            self.deduplicator.add_transaction(duplicate_check_data)
+            
+            return {
+                'success': True,
+                'transaction': transaction,
+                'method': 'advanced_classifier',
+                'classification': parsed_result.get('payment_method', 'Unknown')
+            }
                 
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            # Fallback to old parsing method if new method fails
+            try:
+                if self.ai_assistant.initialized:
+                    ai_result = self.ai_assistant.parse_sms_transaction(sms_text)
+                    
+                    if ai_result['success']:
+                        transaction_data = ai_result['transaction_data']
+                        
+                        # Format date properly if provided
+                        if transaction_data.get('date') and transaction_data['date'] != 'null':
+                            date_str = self.sms_parser.format_date(transaction_data['date'])
+                        else:
+                            date_str = datetime.now().strftime('%Y-%m-%d')
+                        
+                        # Create transaction with old method
+                        transaction = self.create_transaction(
+                            db=db,
+                            vendor=transaction_data.get('vendor', 'Unknown'),
+                            amount=float(transaction_data['amount']),
+                            date=date_str,
+                            transaction_type=transaction_data.get('transaction_type', 'debit'),
+                            category=transaction_data.get('category', 'Others'),
+                            raw_text=sms_text,
+                            confidence=float(transaction_data.get('confidence', 0.0))
+                        )
+                        
+                        return {
+                            'success': True,
+                            'transaction': transaction,
+                            'method': 'fallback_ollama'
+                        }
+                
+                raise HTTPException(status_code=400, detail=str(e))
+            except Exception:
+                raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    
+    def create_enhanced_transaction(
+        self,
+        db: Session,
+        vendor: str,
+        amount: float,
+        date: str,
+        transaction_type: str,
+        category: str,
+        raw_text: str,
+        confidence: float = 0.0,
+        parsed_data: Dict[str, Any] = None
+    ) -> Transaction:
+        """Create a new transaction with enhanced classification data"""
+        try:
+            # Parse date string to datetime with flexible format handling
+            if isinstance(date, str):
+                try:
+                    # Try ISO format first (from mobile app)
+                    if 'T' in date:
+                        # Remove microseconds if present
+                        date_clean = date.split('.')[0] if '.' in date else date
+                        transaction_date = datetime.fromisoformat(date_clean.replace('T', ' '))
+                    else:
+                        # Try standard date format
+                        transaction_date = datetime.strptime(date, '%Y-%m-%d')
+                except ValueError:
+                    # Fallback to current date if parsing fails
+                    transaction_date = datetime.now()
+            else:
+                transaction_date = date
+            
+            # Validate date - if it's in the future, adjust it to current year
+            current_year = datetime.now().year
+            if transaction_date.year > current_year:
+                # If year is 2026 or later, assume it should be current year
+                transaction_date = transaction_date.replace(year=current_year)
+            
+            # Create transaction with enhanced fields
+            transaction = Transaction(
+                vendor=vendor,
+                amount=amount,
+                date=transaction_date,
+                transaction_type=transaction_type,
+                category=category,
+                raw_text=raw_text,
+                confidence=confidence,
+                # Enhanced fields from classification
+                payment_method=parsed_data.get('payment_method') if parsed_data else None,
+                is_subscription=parsed_data.get('is_subscription', False) if parsed_data else False,
+                subscription_service=parsed_data.get('subscription_service') if parsed_data else None,
+                card_last_four=parsed_data.get('card_last_four') if parsed_data else None,
+                upi_transaction_id=parsed_data.get('upi_transaction_id') if parsed_data else None,
+                merchant_category=parsed_data.get('merchant_category') if parsed_data else None,
+                is_recurring=parsed_data.get('is_recurring', False) if parsed_data else False
+            )
+            transaction.success = True
+            
+            db.add(transaction)
+            db.commit()
+            db.refresh(transaction)
+            return transaction
+            
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create enhanced transaction: {str(e)}")
     
     def create_transaction(
         self,

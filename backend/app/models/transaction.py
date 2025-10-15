@@ -21,6 +21,15 @@ class Transaction(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # New fields for enhanced transaction classification
+    payment_method = Column(String(50), nullable=True)  # 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', etc.
+    is_subscription = Column(Boolean, default=False)
+    subscription_service = Column(String(100), nullable=True)  # 'Netflix', 'Amazon Prime', 'Spotify', etc.
+    card_last_four = Column(String(4), nullable=True)  # Last 4 digits of card
+    upi_transaction_id = Column(String(255), nullable=True)  # UPI reference number
+    merchant_category = Column(String(100), nullable=True)  # Detailed merchant category
+    is_recurring = Column(Boolean, default=False)  # Whether this is a recurring payment
+    
     # Relationship disabled for backward compatibility
     # user = relationship("User", back_populates="transactions", lazy="select")
     

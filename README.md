@@ -1,121 +1,64 @@
-# AI Financial Co-Pilot
+# 🚀 AI Finance Manager
 
-A comprehensive financial management application with AI-powered SMS transaction parsing using local Ollama LLM, expense tracking, and intelligent financial insights.
+## One-Click Startup
+
+Run this single command to start everything:
+
+```bash
+python start_app.py
+```
+
+## What This App Does
+
+🤖 **AI Financial Assistant**: Ask questions like "How much did I spend on food delivery?"
+📱 **Smart SMS Parsing**: Automatically categorizes UPI, Credit Card, and Subscription transactions
+📊 **Rich Analytics**: Visual insights with payment method indicators
+💬 **Natural Language Queries**: Chat with your financial data
 
 ## Features
 
-### Core Features
-- **AI-Powered SMS Parsing**: Automatically extract transaction details from bank SMS messages using local Ollama LLM
-- **Smart Transaction Categorization**: Intelligent categorization of expenses and income
-- **Real-time Analytics**: Comprehensive financial analytics and insights
-- **Expense Tracking**: Track and manage personal and group expenses
-- **Duplicate Detection**: Advanced duplicate transaction detection and prevention
-- **Local AI Processing**: Privacy-focused local LLM processing with Ollama
+- ✅ **Automatic IP Configuration**: Works on any network
+- ✅ **Fresh Database**: Resets database on each startup
+- ✅ **Ollama Integration**: Local AI processing for privacy
+- ✅ **Flutter Mobile App**: Modern, responsive UI
+- ✅ **FastAPI Backend**: High-performance API server
 
-### Advanced Features
-- **Group Expense Management**: Split bills and manage shared expenses
-- **Predictive Analytics**: ML-powered spending predictions and trends
-- **Financial Health Score**: Comprehensive financial wellness assessment
-- **Multi-platform Support**: Web dashboard and mobile app
-- **Secure Authentication**: JWT-based secure user authentication
+## Requirements
 
-## Technology Stack
-
-### Backend
-- **FastAPI**: Modern, fast web framework for building APIs
-- **SQLAlchemy**: SQL toolkit and Object-Relational Mapping
-- **SQLite**: Lightweight database for development
-- **Ollama**: Local LLM for intelligent SMS parsing (llama3.1:latest)
-- **Scikit-learn**: Machine learning for categorization and predictions
-- **Pandas**: Data manipulation and analysis
-
-### Frontend (Mobile App)
-- **Flutter**: Cross-platform mobile development framework
-- **Dart**: Programming language for Flutter
-- **HTTP Package**: For API communication
-
-## Installation & Setup
-
-### Prerequisites
 - Python 3.8+
-- Flutter SDK (for mobile app)
-- Ollama with llama3.1:latest model
+- Flutter SDK
+- Ollama (for AI features)
+- Android/iOS device or emulator
 
-### Ollama Setup
-1. Install Ollama from [https://ollama.ai](https://ollama.ai)
-2. Pull the required model: `ollama pull llama3.1:latest`
-3. Start Ollama: `ollama serve`
+## Quick Start
 
-### Backend Setup
-1. Clone the repository
-2. Navigate to backend directory
-3. Create virtual environment: `python -m venv venv`
-4. Activate virtual environment: `venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Linux/Mac)
-5. Install dependencies: `pip install -r requirements.txt`
-6. Run the server: `python -m uvicorn app.main:app --reload`
+1. **Install Ollama**: Download from https://ollama.ai
+2. **Run the app**: `python start_app.py`
+3. **Test features**: Use the mobile app to parse SMS and chat with AI
 
-### Mobile App Setup
-1. Navigate to mobile_app directory
-2. Install dependencies: `flutter pub get`
-3. Run the app: `flutter run`
+## API Endpoints
 
-## API Documentation
+- Health: `/health`
+- SMS Parsing: `/v1/parse-sms-public`
+- Chatbot: `/v1/chatbot/query-public`
+- Transactions: `/v1/transactions-public`
+- Analytics: `/v1/analytics/*-public`
 
-Once the backend is running, visit `http://localhost:8000/docs` for interactive API documentation.
-
-### Key Endpoints
-- `POST /v1/parse-sms`: Parse SMS transaction using Ollama AI
-- `GET /v1/transactions`: Get user transactions
-- `POST /v1/transactions`: Create new transaction
-- `GET /v1/analytics/summary`: Get financial summary
-- `POST /v1/auth/register`: User registration
-- `POST /v1/auth/login`: User login
-
-## Testing
-
-Test the Ollama integration:
-```bash
-python test_ollama_integration.py
-python test_database_data.py
-```
-
-## Configuration
-
-### Environment Variables
-- `OLLAMA_HOST`: Ollama server URL (default: http://localhost:11434)
-- `SECRET_KEY`: JWT secret key
-- `DATABASE_URL`: Database connection string
-
-### Settings
-Configure settings in `backend/app/config/settings.py`
-
-## Project Structure
+## Architecture
 
 ```
-├── backend/
-│   ├── app/
-│   │   ├── config/          # Configuration files
-│   │   ├── controllers/     # Business logic
-│   │   ├── models/          # Database models
-│   │   ├── routes/          # API routes
-│   │   ├── utils/           # Utility functions (including Ollama integration)
-│   │   └── main.py          # FastAPI application
-│   └── requirements.txt
-├── mobile_app/              # Flutter mobile application
-├── test_ollama_integration.py
-├── test_database_data.py
-└── README.md
+AI Finance Manager/
+├── backend/           # FastAPI server
+├── mobile_app/        # Flutter mobile app
+└── start_app.py      # One-click startup script
 ```
 
-## Usage Example
+## Support
 
-```bash
-# Test SMS parsing
-curl -X POST "http://localhost:8000/v1/parse-sms" \
-  -H "Content-Type: application/json" \
-  -d '{"sms_text":"HDFC Bank: Rs.1,250.50 debited from A/c **1234 at AMAZON PAY INDIA on 15-09-2024"}'
-```
+If you encounter issues:
+1. Ensure Ollama is installed and running
+2. Check that your device is connected for Flutter
+3. Verify network connectivity
+4. Check console output for specific errors
 
-## License
-
-This project is licensed under the MIT License.
+**Built with ❤️ for intelligent financial management**

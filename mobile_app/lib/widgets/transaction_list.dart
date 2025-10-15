@@ -103,24 +103,78 @@ class TransactionCard extends StatelessWidget {
                 color: Colors.grey[600],
               ),
             ),
-            if (transaction.category != null) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  transaction.category!,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.blue.shade700,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                // Category badge
+                if (transaction.category != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      transaction.category!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                  const SizedBox(width: 6),
+                ],
+                // Payment method badge
+                if (transaction.paymentMethod != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _getPaymentMethodColor(transaction.paymentMethod!).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      transaction.paymentMethod!,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: _getPaymentMethodColor(transaction.paymentMethod!),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                // Subscription badge
+                if (transaction.isSubscription) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.subscriptions,
+                          size: 10,
+                          color: Colors.purple.shade700,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          transaction.subscriptionService ?? 'Subscription',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.purple.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
         trailing: Text(
@@ -142,6 +196,21 @@ class TransactionCard extends StatelessWidget {
       isScrollControlled: true,
       builder: (context) => TransactionDetailsSheet(transaction: transaction),
     );
+  }
+
+  Color _getPaymentMethodColor(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'upi':
+        return Colors.orange;
+      case 'credit card':
+        return Colors.red;
+      case 'debit card':
+        return Colors.green;
+      case 'net banking':
+        return Colors.indigo;
+      default:
+        return Colors.grey;
+    }
   }
 }
 
@@ -188,6 +257,22 @@ class TransactionDetailsSheet extends StatelessWidget {
           ),
           if (transaction.category != null)
             _buildDetailRow('Category', transaction.category!),
+          
+          // Enhanced fields
+          if (transaction.paymentMethod != null)
+            _buildDetailRow('Payment Method', transaction.paymentMethod!),
+          if (transaction.merchantCategory != null)
+            _buildDetailRow('Merchant Category', transaction.merchantCategory!),
+          if (transaction.isSubscription)
+            _buildDetailRow('Subscription Service', transaction.subscriptionService ?? 'Unknown'),
+          if (transaction.cardLastFour != null)
+            _buildDetailRow('Card Last 4 Digits', '****${transaction.cardLastFour}'),
+          if (transaction.upiTransactionId != null)
+            _buildDetailRow('UPI Transaction ID', transaction.upiTransactionId!),
+          if (transaction.isRecurring)
+            _buildDetailRow('Recurring Payment', 'Yes'),
+          
+          _buildDetailRow('Confidence Score', '${(transaction.confidence * 100).toStringAsFixed(1)}%'),
           
           const SizedBox(height: 16),
           const Text(

@@ -16,6 +16,13 @@ Transaction _$TransactionFromJson(Map<String, dynamic> json) => Transaction(
       success: json['success'] as bool,
       rawText: json['raw_text'] as String,
       confidence: (json['confidence'] as num).toDouble(),
+      paymentMethod: json['payment_method'] as String?,
+      isSubscription: json['is_subscription'] as bool? ?? false,
+      subscriptionService: json['subscription_service'] as String?,
+      cardLastFour: json['card_last_four'] as String?,
+      upiTransactionId: json['upi_transaction_id'] as String?,
+      merchantCategory: json['merchant_category'] as String?,
+      isRecurring: json['is_recurring'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$TransactionToJson(Transaction instance) =>
@@ -29,4 +36,11 @@ Map<String, dynamic> _$TransactionToJson(Transaction instance) =>
       'success': instance.success,
       'raw_text': instance.rawText,
       'confidence': instance.confidence,
+      'payment_method': instance.paymentMethod,
+      'is_subscription': instance.isSubscription,
+      'subscription_service': instance.subscriptionService,
+      'card_last_four': instance.cardLastFour,
+      'upi_transaction_id': instance.upiTransactionId,
+      'merchant_category': instance.merchantCategory,
+      'is_recurring': instance.isRecurring,
     };

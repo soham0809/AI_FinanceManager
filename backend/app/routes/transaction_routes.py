@@ -49,7 +49,7 @@ async def parse_sms(
     current_user: User = Depends(get_current_active_user)
 ):
     """Parse SMS and extract transaction data"""
-    result = transaction_controller.parse_sms(db, request.sms_text, current_user.id)
+    result = await transaction_controller.parse_sms(db, request.sms_text, current_user.id)
     transaction = result['transaction']
     
     return TransactionResponse(
@@ -67,7 +67,7 @@ async def parse_sms(
 @router.post("/parse-sms-public", response_model=TransactionResponse)
 async def parse_sms_public(request: SMSRequest, db: Session = Depends(get_db)):
     """Parse SMS without authentication (for backward compatibility)"""
-    result = transaction_controller.parse_sms(db, request.sms_text)
+    result = await transaction_controller.parse_sms(db, request.sms_text)
     transaction = result['transaction']
     
     return TransactionResponse(

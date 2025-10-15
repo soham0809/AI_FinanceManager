@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'home_screen.dart';
 import 'analytics_screen.dart';
 import 'insights_screen.dart';
+import 'chatbot_screen.dart';
 import '../providers/transaction_provider.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -39,6 +40,17 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatbotScreen()),
+          );
+        },
+        backgroundColor: Colors.deepPurple,
+        child: const Icon(Icons.chat, color: Colors.white),
+        tooltip: 'Ask Financial Assistant',
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         items: const <BottomNavigationBarItem>[

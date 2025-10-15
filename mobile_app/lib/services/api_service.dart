@@ -19,7 +19,7 @@ class ApiService {
     if (Platform.isAndroid) {
       // For physical Android device, use your computer's actual IP
       // For Android emulator, use 'http://10.0.2.2:8000'
-      return 'http://192.168.0.102:8000';  // Back to physical device IP
+      return 'http://172.20.10.3:8000';  // Updated to current IP
     } else if (Platform.isIOS) {
       // For iOS simulator
       return 'http://localhost:8000';
@@ -465,6 +465,68 @@ class ApiService {
       }
     } catch (e) {
       print('Network error: $e'); // Add this line
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Chatbot endpoints
+  Future<Map<String, dynamic>> queryChatbot(String query, {int limit = 100}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/chatbot/query-public'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'query': query,
+          'limit': limit,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get chatbot response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in queryChatbot: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getQuickInsights() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/chatbot/quick-insights-public'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get quick insights: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in getQuickInsights: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getFinancialSummary({int days = 30}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/v1/chatbot/summary-public?days=$days'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get financial summary: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in getFinancialSummary: $e');
       throw Exception('Network error: $e');
     }
   }
