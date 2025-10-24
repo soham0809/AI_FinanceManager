@@ -9,17 +9,26 @@ from app.utils.sms_parser import SMSParser
 from app.utils.ollama_integration import OllamaAssistant
 from app.utils.transaction_deduplicator import TransactionDeduplicator
 from app.utils.sms_classifier import classify_and_parse_sms
+from app.utils.intelligent_sms_filter import IntelligentSMSFilter, SMSType
 
 class TransactionController:
     def __init__(self):
         self.sms_parser = SMSParser()
         self.ai_assistant = OllamaAssistant()
         self.deduplicator = TransactionDeduplicator()
+        self.intelligent_filter = IntelligentSMSFilter()
     
     async def parse_sms(self, db: Session, sms_text: str, user_id: Optional[int] = None) -> Dict[str, Any]:
-        """Parse SMS and create transaction using advanced classification"""
+        """Parse SMS and create transaction using intelligent filtering and advanced classification"""
         try:
-            # Use new advanced SMS classification and parsing
+            # STEP 1: Intelligent pre-filtering to identify real transactions
+            sms_type, confidence, reason = self.intelligent_filter.classify_sms(sms_text)
+            
+            # Only process if it's a real transaction with high confidence
+            if sms_type != SMSType.REAL_TRANSACTION or confidence < 0.6:
+                raise ValueError(f"SMS filtered out: {sms_type.value} (confidence: {confidence:.2f}) - {reason}")
+            
+            # STEP 2: Use advanced SMS classification and parsing for real transactions
             parsed_result = await classify_and_parse_sms(sms_text)
             
             if parsed_result.get('success') is False:
@@ -29,7 +38,8 @@ class TransactionController:
             vendor = parsed_result.get('vendor', 'Unknown')
             amount = float(parsed_result.get('amount', 0))
             transaction_type = parsed_result.get('transaction_type', 'debit')
-            category = parsed_result.get('category', 'Others')
+            # Map merchant_category to category for backward compatibility
+            category = parsed_result.get('merchant_category', parsed_result.get('category', 'Others'))
             confidence = float(parsed_result.get('confidence', 0.0))
             
             # Format date properly if provided
@@ -62,11 +72,11 @@ class TransactionController:
                 vendor=vendor,
                 amount=amount,
                 date=date_str,
-                transaction_type=transaction_type,
                 category=category,
-                raw_text=sms_text,
+                sms_text=sms_text,
                 confidence=confidence,
-                parsed_data=parsed_result
+                parsed_data=parsed_result,
+                user_id=user_id
             )
             
             # Add to deduplicator
@@ -100,10 +110,10 @@ class TransactionController:
                             vendor=transaction_data.get('vendor', 'Unknown'),
                             amount=float(transaction_data['amount']),
                             date=date_str,
-                            transaction_type=transaction_data.get('transaction_type', 'debit'),
                             category=transaction_data.get('category', 'Others'),
-                            raw_text=sms_text,
-                            confidence=float(transaction_data.get('confidence', 0.0))
+                            sms_text=sms_text,
+                            confidence=float(transaction_data.get('confidence', 0.0)),
+                            user_id=user_id
                         )
                         
                         return {
@@ -124,11 +134,11 @@ class TransactionController:
         vendor: str,
         amount: float,
         date: str,
-        transaction_type: str,
         category: str,
-        raw_text: str,
+        sms_text: str,
         confidence: float = 0.0,
-        parsed_data: Dict[str, Any] = None
+        parsed_data: Dict[str, Any] = None,
+        user_id: Optional[int] = None
     ) -> Transaction:
         """Create a new transaction with enhanced classification data"""
         try:
@@ -159,11 +169,12 @@ class TransactionController:
             transaction = Transaction(
                 vendor=vendor,
                 amount=amount,
-                date=transaction_date,
-                transaction_type=transaction_type,
+                date=date,  # Store as string to match existing DB
                 category=category,
-                raw_text=raw_text,
+                sms_text=sms_text,
                 confidence=confidence,
+                created_at=datetime.now(),
+                user_id=user_id,  # Add user isolation
                 # Enhanced fields from classification
                 payment_method=parsed_data.get('payment_method') if parsed_data else None,
                 is_subscription=parsed_data.get('is_subscription', False) if parsed_data else False,
@@ -173,7 +184,6 @@ class TransactionController:
                 merchant_category=parsed_data.get('merchant_category') if parsed_data else None,
                 is_recurring=parsed_data.get('is_recurring', False) if parsed_data else False
             )
-            transaction.success = True
             
             db.add(transaction)
             db.commit()
@@ -190,10 +200,10 @@ class TransactionController:
         vendor: str,
         amount: float,
         date: str,
-        transaction_type: str,
         category: str,
-        raw_text: str,
-        confidence: float = 0.0
+        sms_text: str,
+        confidence: float = 0.0,
+        user_id: Optional[int] = None
     ) -> Transaction:
         """Create a new transaction"""
         try:
@@ -223,13 +233,13 @@ class TransactionController:
             transaction = Transaction(
                 vendor=vendor,
                 amount=amount,
-                date=transaction_date,
-                transaction_type=transaction_type,
+                date=date,  # Store as string to match existing DB
                 category=category,
-                raw_text=raw_text,
-                confidence=confidence
+                sms_text=sms_text,
+                confidence=confidence,
+                created_at=datetime.now(),
+                user_id=user_id
             )
-            transaction.success = True
             
             db.add(transaction)
             db.commit()
@@ -239,6 +249,17 @@ class TransactionController:
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to create transaction: {str(e)}")
+    
+    def get_user_transactions(self, db: Session, user_id: int, limit: Optional[int] = None) -> List[Transaction]:
+        """Get transactions for a specific user"""
+        query = db.query(Transaction).filter(Transaction.user_id == user_id)
+        if limit:
+            query = query.limit(limit)
+        return query.order_by(Transaction.date.desc()).all()
+    
+    def get_user_transaction_count(self, db: Session, user_id: int) -> int:
+        """Get transaction count for a specific user"""
+        return db.query(Transaction).filter(Transaction.user_id == user_id).count()
     
     def get_transactions(
         self,
@@ -250,19 +271,19 @@ class TransactionController:
         """Get transactions with optional user filtering"""
         query = db.query(Transaction)
         
-        # User filtering disabled for backward compatibility
-        # if user_id:
-        #     query = query.filter(Transaction.user_id == user_id)
+        # Enable user filtering for proper isolation
+        if user_id is not None:
+            query = query.filter(Transaction.user_id == user_id)
         
-        return query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
+        return query.order_by(Transaction.id.desc()).offset(offset).limit(limit).all()
     
     def get_transaction_by_id(self, db: Session, transaction_id: int, user_id: Optional[int] = None) -> Transaction:
         """Get transaction by ID"""
         query = db.query(Transaction).filter(Transaction.id == transaction_id)
         
-        # User filtering disabled for backward compatibility
-        # if user_id:
-        #     query = query.filter(Transaction.user_id == user_id)
+        # Enable user filtering for proper isolation
+        if user_id is not None:
+            query = query.filter(Transaction.user_id == user_id)
         
         transaction = query.first()
         if not transaction:

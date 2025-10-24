@@ -30,6 +30,17 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: str = None
+    token_type: str
+    expires_in: int
+    refresh_expires_in: int = None
+    user: UserResponse
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class AccessTokenResponse(BaseModel):
+    access_token: str
     token_type: str
     expires_in: int
     user: UserResponse
@@ -47,9 +58,9 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """Login user and return access token"""
+    """Login user and return access and refresh tokens"""
     user = AuthController.authenticate_user(db, form_data.username, form_data.password)
-    token_data = AuthController.create_access_token_for_user(user)
+    token_data = AuthController.create_access_token_for_user(user, db)
     return token_data
 
 @router.get("/me", response_model=UserResponse)
@@ -65,3 +76,13 @@ async def update_current_user(
 ):
     """Update current user information"""
     return AuthController.update_user(db, current_user.id, **user_update)
+
+@router.post("/refresh", response_model=AccessTokenResponse)
+async def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+    """Refresh access token using refresh token"""
+    return AuthController.refresh_access_token(db, request.refresh_token)
+
+@router.post("/logout")
+async def logout(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)):
+    """Logout user by invalidating refresh token"""
+    return AuthController.logout_user(db, current_user.id)

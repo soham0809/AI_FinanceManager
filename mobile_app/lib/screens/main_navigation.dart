@@ -4,6 +4,7 @@ import 'home_screen.dart';
 import 'analytics_screen.dart';
 import 'insights_screen.dart';
 import 'chatbot_screen.dart';
+import 'account_screen.dart';
 import '../providers/transaction_provider.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -21,6 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
     const HomeScreen(),
     const AnalyticsScreen(),
     const InsightsScreen(),
+    const AccountScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -65,6 +67,10 @@ class _MainNavigationState extends State<MainNavigation> {
           BottomNavigationBarItem(
             icon: Icon(Icons.psychology),
             label: 'AI Insights',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle),
+            label: 'Account',
           ),
         ],
         currentIndex: _selectedIndex,

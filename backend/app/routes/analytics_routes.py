@@ -32,14 +32,14 @@ async def get_insights(
     
     # Calculate metrics
     total_transactions = len(transactions)
-    total_spending = sum(t.amount for t in transactions if t.transaction_type == 'debit')
-    total_income = sum(t.amount for t in transactions if t.transaction_type == 'credit')
+    total_spending = sum(abs(t.amount) for t in transactions if t.amount < 0)
+    total_income = sum(t.amount for t in transactions if t.amount > 0)
     net_balance = total_income - total_spending
     
-    spending_transactions = [t for t in transactions if t.transaction_type == 'debit']
+    spending_transactions = [t for t in transactions if t.amount < 0]
     avg_transaction = total_spending / len(spending_transactions) if spending_transactions else 0
-    max_spending = max((t.amount for t in spending_transactions), default=0)
-    min_spending = min((t.amount for t in spending_transactions), default=0)
+    max_spending = max((abs(t.amount) for t in spending_transactions), default=0)
+    min_spending = min((abs(t.amount) for t in spending_transactions), default=0)
     
     # Get unique vendors and active days
     unique_vendors = len(set(t.vendor for t in transactions))
@@ -90,14 +90,14 @@ async def get_insights_public(db: Session = Depends(get_db)):
     
     # Calculate metrics
     total_transactions = len(transactions)
-    total_spending = sum(t.amount for t in transactions if t.transaction_type == 'debit')
-    total_income = sum(t.amount for t in transactions if t.transaction_type == 'credit')
+    total_spending = sum(abs(t.amount) for t in transactions if t.amount < 0)
+    total_income = sum(t.amount for t in transactions if t.amount > 0)
     net_balance = total_income - total_spending
     
-    spending_transactions = [t for t in transactions if t.transaction_type == 'debit']
+    spending_transactions = [t for t in transactions if t.amount < 0]
     avg_transaction = total_spending / len(spending_transactions) if spending_transactions else 0
-    max_spending = max((t.amount for t in spending_transactions), default=0)
-    min_spending = min((t.amount for t in spending_transactions), default=0)
+    max_spending = max((abs(t.amount) for t in spending_transactions), default=0)
+    min_spending = min((abs(t.amount) for t in spending_transactions), default=0)
     
     # Get unique vendors and active days
     unique_vendors = len(set(t.vendor for t in transactions))
@@ -147,7 +147,7 @@ async def get_spending_by_category(
         func.max(Transaction.amount).label('max_amount')
     ).filter(
         Transaction.user_id == current_user.id,
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(Transaction.category).all()
     
     categories = {}
@@ -198,7 +198,7 @@ async def get_spending_by_category_public(db: Session = Depends(get_db)):
         func.min(Transaction.amount).label('min_amount'),
         func.max(Transaction.amount).label('max_amount')
     ).filter(
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(Transaction.category).all()
     
     categories = {}
@@ -250,7 +250,7 @@ async def get_monthly_trends(
         func.count(Transaction.id).label('transaction_count')
     ).filter(
         Transaction.user_id == current_user.id,
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(
         extract('year', Transaction.date),
         extract('month', Transaction.date)
@@ -301,7 +301,7 @@ async def get_monthly_trends_public(db: Session = Depends(get_db)):
         func.sum(Transaction.amount).label('total_amount'),
         func.count(Transaction.id).label('transaction_count')
     ).filter(
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(
         extract('year', Transaction.date),
         extract('month', Transaction.date)
@@ -357,7 +357,7 @@ async def get_top_vendors(
         func.avg(Transaction.amount).label('avg_amount')
     ).filter(
         Transaction.user_id == current_user.id,
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(Transaction.vendor).order_by(
         func.sum(Transaction.amount).desc()
     ).limit(limit).all()
@@ -386,7 +386,7 @@ async def get_top_vendors_public(db: Session = Depends(get_db), limit: int = 10)
         func.count(Transaction.id).label('transaction_count'),
         func.avg(Transaction.amount).label('avg_amount')
     ).filter(
-        Transaction.transaction_type == 'debit'
+        Transaction.amount < 0
     ).group_by(Transaction.vendor).order_by(
         func.sum(Transaction.amount).desc()
     ).limit(limit).all()

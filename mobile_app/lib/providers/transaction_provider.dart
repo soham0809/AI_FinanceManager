@@ -143,24 +143,14 @@ class TransactionProvider with ChangeNotifier {
       if (response['success'] == true) {
         final transaction = Transaction(
           id: _uuid.v4(), // Generate a new ID here
-          success: true,
           vendor: response['vendor'],
           amount: response['amount'].toDouble(),
           date: response['date'],
-          transactionType: response['transaction_type'],
           category: response['category'],
-          rawText: smsText,
+          smsText: smsText,  // Updated field name
           confidence: response['confidence']?.toDouble() ?? 0.0,
         );
-        
-        // Save to backend
-        try {
-          await apiService.saveTransaction(transaction);
-        } catch (e) {
-          debugPrint('Error saving parsed transaction to backend: $e');
-          // Continue even if backend save fails
-        }
-        
+        // Do not save again; backend parse endpoint already persisted it
         _transactions.insert(0, transaction);
       }
       

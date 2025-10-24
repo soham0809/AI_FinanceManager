@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class ChatMessage {
   final String text;
   final bool isUser;
   final DateTime timestamp;
   final int? transactionCount;
+  final String? source;
+  final String? sourceDescription;
+  final bool? cached;
+  final double? processingTime;
+  final double? qualityScore;
 
   ChatMessage({
     required this.text,
     required this.isUser,
     required this.timestamp,
     this.transactionCount,
+    this.source,
+    this.sourceDescription,
+    this.cached,
+    this.processingTime,
+    this.qualityScore,
   });
 }
 
@@ -28,6 +39,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
+  bool _useEnhancedChatbot = true; // Toggle for enhanced vs old chatbot
+  Map<String, dynamic>? _dataQuality;
 
   @override
   void initState() {
@@ -46,13 +59,48 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     setState(() => _isLoading = true);
     
     try {
-      final response = await _apiService.getQuickInsights();
-      _addMessage(ChatMessage(
-        text: "Welcome! Here are your quick financial insights:\n\n${response['insights']}",
-        isUser: false,
-        timestamp: DateTime.now(),
-        transactionCount: response['transaction_count'],
-      ));
+      // Load data quality if user is authenticated and using enhanced chatbot
+      if (AuthService.isLoggedIn && _useEnhancedChatbot) {
+        try {
+          _dataQuality = await _apiService.getDataQualityReport();
+          final quality = _dataQuality!['data_quality'];
+          
+          _addMessage(ChatMessage(
+            text: "🎉 Welcome to Enhanced Financial Assistant!\n\n"
+                  "📊 Data Quality: ${quality['quality_score']}%\n"
+                  "📈 Transactions: ${quality['total_transactions']}\n"
+                  "📅 Range: ${quality['data_range']['from']} to ${quality['data_range']['to']}\n\n"
+                  "I can analyze your parsed transaction data intelligently. Try asking:\n"
+                  "• 'How much did I spend this month?'\n"
+                  "• 'What are my top spending categories?'\n"
+                  "• 'Show me my spending trends'",
+            isUser: false,
+            timestamp: DateTime.now(),
+            transactionCount: quality['total_transactions'],
+            qualityScore: quality['quality_score'].toDouble(),
+            source: 'enhanced',
+            sourceDescription: 'Enhanced AI with Transaction Context',
+          ));
+        } catch (e) {
+          print('Failed to load data quality: $e');
+          _addMessage(ChatMessage(
+            text: "Welcome to Enhanced Financial Assistant! Please ensure you're logged in to access your transaction data.",
+            isUser: false,
+            timestamp: DateTime.now(),
+          ));
+        }
+      } else {
+        // Fallback to old quick insights
+        final response = await _apiService.getQuickInsights();
+        _addMessage(ChatMessage(
+          text: "Welcome! Here are your quick financial insights:\n\n${response['insights']}",
+          isUser: false,
+          timestamp: DateTime.now(),
+          transactionCount: response['transaction_count'],
+          source: 'basic',
+          sourceDescription: 'Basic Chatbot',
+        ));
+      }
     } catch (e) {
       _addMessage(ChatMessage(
         text: "Welcome to your Financial Assistant! Ask me about your spending patterns, transactions, or financial insights.",
@@ -78,16 +126,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('🤖 Sending chatbot query: $message');
-      final response = await _apiService.queryChatbot(message);
-      print('🤖 Received response: ${response.toString()}');
+      Map<String, dynamic> response;
       
-      _addMessage(ChatMessage(
-        text: response['response'],
-        isUser: false,
-        timestamp: DateTime.now(),
-        transactionCount: response['transaction_count'],
-      ));
+      if (_useEnhancedChatbot && AuthService.isLoggedIn) {
+        print('🤖 Using enhanced chatbot with transaction context');
+        response = await _apiService.queryEnhancedChatbot(message);
+        
+        _addMessage(ChatMessage(
+          text: response['response'],
+          isUser: false,
+          timestamp: DateTime.now(),
+          transactionCount: response['transaction_count'],
+          cached: response['cached'],
+          processingTime: response['processing_time']?.toDouble(),
+          qualityScore: response['data_quality']['quality_score']?.toDouble(),
+          source: 'enhanced',
+          sourceDescription: 'Enhanced AI with Transaction Context',
+        ));
+      } else {
+        print('🤖 Using basic chatbot');
+        response = await _apiService.queryChatbot(message);
+        
+        _addMessage(ChatMessage(
+          text: response['response'],
+          isUser: false,
+          timestamp: DateTime.now(),
+          transactionCount: response['transaction_count'],
+          source: response['source'] ?? 'basic',
+          sourceDescription: response['source_description'] ?? 'Basic Chatbot',
+        ));
+      }
     } catch (e) {
       print('❌ Chatbot error: $e');
       String errorMessage = "Sorry, I'm having trouble processing your request right now.";
@@ -98,6 +166,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         errorMessage = "Can't connect to the AI service. Please check your internet connection.";
       } else if (e.toString().contains('500')) {
         errorMessage = "The AI service is having issues. Please try again in a moment.";
+      } else if (e.toString().contains('Authentication required')) {
+        errorMessage = "Please log in to use the enhanced chatbot with your transaction data.";
       }
       
       _addMessage(ChatMessage(
@@ -131,10 +201,37 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Financial Assistant'),
-        backgroundColor: Colors.deepPurple,
+        title: Text(_useEnhancedChatbot ? 'Enhanced Financial Assistant' : 'Basic Financial Assistant'),
+        backgroundColor: _useEnhancedChatbot ? Colors.deepPurple : Colors.grey[700],
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          // Enhanced chatbot toggle
+          Row(
+            children: [
+              Text(
+                'Enhanced',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _useEnhancedChatbot ? Colors.white : Colors.white70,
+                ),
+              ),
+              Switch(
+                value: _useEnhancedChatbot,
+                onChanged: AuthService.isLoggedIn ? (value) {
+                  setState(() {
+                    _useEnhancedChatbot = value;
+                    _messages.clear(); // Clear messages when switching
+                  });
+                  _loadQuickInsights(); // Reload with new mode
+                } : null,
+                activeColor: Colors.white,
+                inactiveThumbColor: Colors.white70,
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -308,6 +405,81 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       ),
                     ),
                   ],
+                  if (!message.isUser && message.sourceDescription != null) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getSourceColor(message.source),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "📡 ${message.sourceDescription}",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                  // Enhanced chatbot features
+                  if (!message.isUser && message.source == 'enhanced') ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 4,
+                      children: [
+                        if (message.cached != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: message.cached! ? Colors.green : Colors.orange,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              message.cached! ? "⚡ CACHED" : "🔄 NEW",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        if (message.qualityScore != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              "📊 ${message.qualityScore!.toStringAsFixed(1)}%",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        if (message.processingTime != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.purple,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              "⏱️ ${message.processingTime!.toStringAsFixed(1)}s",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     "${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}",
@@ -331,5 +503,22 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
         ],
       ),
     );
+  }
+
+  Color _getSourceColor(String? source) {
+    switch (source) {
+      case 'enhanced':
+        return Colors.deepPurple;
+      case 'ai_model':
+        return Colors.green;
+      case 'analytics':
+        return Colors.blue;
+      case 'basic':
+        return Colors.grey[600]!;
+      case 'fallback':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 }

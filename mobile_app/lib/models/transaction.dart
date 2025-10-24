@@ -9,12 +9,12 @@ class Transaction {
   final String vendor;
   final double amount;
   final String date;
-  @JsonKey(name: 'transaction_type')
-  final String transactionType;
+  // @JsonKey(name: 'transaction_type')  // Removed - not in current DB schema
+  // final String transactionType;       // Removed - not in current DB schema
   final String? category;
-  final bool success;
-  @JsonKey(name: 'raw_text')
-  final String rawText;
+  // final bool success;                 // Removed - not in current DB schema
+  @JsonKey(name: 'sms_text')            // Updated to match backend schema
+  final String smsText;                 // Updated field name
   final double confidence;
   
   // New enhanced fields for advanced classification
@@ -38,10 +38,10 @@ class Transaction {
     required this.vendor,
     required this.amount,
     required this.date,
-    required this.transactionType,
+    // required this.transactionType,  // Removed - not in current DB schema
     this.category,
-    required this.success,
-    required this.rawText,
+    // required this.success,          // Removed - not in current DB schema
+    required this.smsText,             // Updated field name
     required this.confidence,
     // New enhanced fields
     this.paymentMethod,
@@ -58,8 +58,17 @@ class Transaction {
 
   Map<String, dynamic> toJson() => _$TransactionToJson(this);
 
-  bool get isDebit => transactionType.toLowerCase() == 'debit';
-  bool get isCredit => transactionType.toLowerCase() == 'credit';
+  // Simple heuristic for transaction type since transactionType field is removed
+  // Most SMS transactions are debits (spending), but we can infer from SMS text
+  bool get isDebit {
+    // Check SMS text for credit indicators
+    final smsLower = smsText.toLowerCase();
+    return !smsLower.contains('credited') && 
+           !smsLower.contains('received') && 
+           !smsLower.contains('refund');
+  }
+  
+  bool get isCredit => !isDebit;
 
   String get formattedAmount {
     return '₹${amount.toStringAsFixed(2)}';
@@ -74,10 +83,10 @@ class Transaction {
     String? vendor,
     double? amount,
     String? date,
-    String? transactionType,
+    // String? transactionType,  // Removed - not in current DB schema
     String? category,
-    bool? success,
-    String? rawText,
+    // bool? success,            // Removed - not in current DB schema
+    String? smsText,             // Updated field name
     double? confidence,
     String? paymentMethod,
     bool? isSubscription,
@@ -92,10 +101,10 @@ class Transaction {
       vendor: vendor ?? this.vendor,
       amount: amount ?? this.amount,
       date: date ?? this.date,
-      transactionType: transactionType ?? this.transactionType,
+      // transactionType: transactionType ?? this.transactionType,  // Removed
       category: category ?? this.category,
-      success: success ?? this.success,
-      rawText: rawText ?? this.rawText,
+      // success: success ?? this.success,                          // Removed
+      smsText: smsText ?? this.smsText,                             // Updated field name
       confidence: confidence ?? this.confidence,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       isSubscription: isSubscription ?? this.isSubscription,

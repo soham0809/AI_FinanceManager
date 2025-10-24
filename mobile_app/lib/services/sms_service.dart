@@ -117,13 +117,11 @@ class SMSService {
       if (response['success'] == true) {
         return Transaction(
           id: _uuid.v4(), // Add unique ID
-          success: true,
           vendor: response['vendor'],
           amount: response['amount'].toDouble(),
           date: response['date'],
-          transactionType: response['transaction_type'],
           category: response['category'],
-          rawText: smsText,
+          smsText: smsText,  // Updated field name
           confidence: response['confidence']?.toDouble() ?? 0.0,
         );
       }

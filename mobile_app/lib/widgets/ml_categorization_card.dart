@@ -99,7 +99,7 @@ class _MLCategorizationCardState extends State<MLCategorizationCard> {
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
                     Text('Model: ${_modelInfo!['model_type']}'),
-                    Text('Categories: ${_modelInfo!['categories'].length}'),
+                    Text('Categories: ${_modelInfo!['categories']?.length ?? 0}'),
                   ],
                 ),
               ),

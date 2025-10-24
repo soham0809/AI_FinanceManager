@@ -69,41 +69,73 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
         _scanStatus = 'Found ${smsMessages.length} transaction SMS!';
       });
 
-      // Process SMS messages into transactions for analytics in background
+      // Use server-side LLM batch parsing with progress polling
       final provider = context.read<TransactionProvider>();
-      
-      setState(() => _scanStatus = 'Processing ${smsMessages.length} SMS messages...');
-      
-      // Process SMS messages directly to avoid compute() type issues
-      setState(() => _scanStatus = 'Parsing ${smsMessages.length} SMS messages...');
-      
-      final processedTransactions = _processSMSListSync(smsMessages);
-      
-      // Save each transaction to the backend before adding to the provider
-      setState(() => _scanStatus = 'Saving transactions to backend...');
-      
-      // First fetch existing transactions to avoid duplicates
-      await provider.fetchTransactions();
-      
-      // Then add new transactions
-      for (final transaction in processedTransactions) {
-        await provider.apiService.saveTransaction(transaction);
+      setState(() => _scanStatus = 'Starting LLM batch parsing on server...');
+
+      // Kick off background batch job
+      final startResp = await provider.apiService.startParseSmsBatch(
+        smsMessages,
+        batchSize: 12,
+        delaySeconds: 2,
+      );
+      final String jobId = startResp['job_id'];
+
+      // Poll job status until completed/failed
+      int lastProcessed = 0;
+      while (mounted) {
+        try {
+          final status = await provider.apiService.getQuickJobStatus(jobId);
+          final s = (status['status'] ?? '').toString();
+          final total = status['result']?['total'] ?? status['total'] ?? smsMessages.length;
+          final processed = status['result']?['processed'] ?? status['processed'] ?? 0;
+          final success = status['result']?['success'] ?? status['success'] ?? 0;
+          final failed = status['result']?['failed'] ?? status['failed'] ?? 0;
+          final items = status['result']?['items'] ?? status['items'];
+          String lastInfo = '';
+          if (items is List && items.isNotEmpty) {
+            final last = items.last;
+            if (last is Map && (last['success'] == true)) {
+              final vendor = (last['vendor'] ?? '').toString();
+              final amount = last['amount'];
+              lastInfo = vendor.isNotEmpty ? ' • Last: ' + vendor + (amount != null ? ' - ₹' + amount.toString() : '') : '';
+            } else {
+              lastInfo = ' • Last: failed';
+            }
+          }
+
+          if (processed != lastProcessed) {
+            setState(() => _scanStatus = 'LLM parsing... $processed/$total (✓$success ✗$failed)' + lastInfo);
+            lastProcessed = processed;
+          }
+
+          if (s == 'completed') {
+            setState(() {
+              _foundTransactions = success is int ? success : 0;
+              _scanStatus = 'Batch completed: $success saved, $failed failed';
+            });
+            break;
+          }
+          if (s == 'failed') {
+            setState(() => _scanStatus = 'Batch failed after $processed/$total');
+            break;
+          }
+        } catch (e) {
+          // Transient failure (server reload, tunnel hiccup). Keep polling.
+          setState(() => _scanStatus = 'Waiting for server... retrying');
+        }
+
+        await Future.delayed(const Duration(seconds: 2));
       }
-      
-      // Fetch all transactions from server to ensure data is up-to-date
+
+      // Refresh user-specific transactions from server
       await provider.fetchTransactions();
-      final successfullyParsed = processedTransactions.length;
-      
-      setState(() {
-        _foundTransactions = successfullyParsed;
-        _scanStatus = 'Successfully processed $successfullyParsed transactions!';
-      });
 
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Found ${smsMessages.length} SMS, processed $successfullyParsed transactions!'),
+            content: Text('✅ LLM batch parsed ${smsMessages.length} SMS. Saved $_foundTransactions transactions.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 5),
           ),
@@ -251,13 +283,11 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
 
       return Transaction(
         id: _uuid.v4(), // Add unique ID
-        success: true,
         vendor: vendor,
         amount: amount,
         date: date,
-        transactionType: transactionType,
         category: category,
-        rawText: smsText,
+        smsText: smsText,  // Updated field name
         confidence: 0.85, // High confidence for real SMS data
       );
     } catch (e) {
@@ -367,7 +397,7 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
     try {
       await _smsService.setupSMSListener((Transaction transaction) {
         // Add new transaction to provider
-        context.read<TransactionProvider>().parseSMSAndAddTransaction(transaction.rawText);
+        context.read<TransactionProvider>().parseSMSAndAddTransaction(transaction.smsText);
         
         // Show notification
         if (mounted) {
@@ -620,13 +650,11 @@ Transaction? _createTransactionFromSMSStatic(String smsText, int index, Uuid uui
 
     return Transaction(
       id: uuidStatic.v4(), // Add unique ID
-      success: true,
       vendor: vendor,
       amount: amount,
       date: date,
-      transactionType: transactionType,
       category: category,
-      rawText: smsText,
+      smsText: smsText,  // Updated field name
       confidence: 0.85,
     );
   } catch (e) {

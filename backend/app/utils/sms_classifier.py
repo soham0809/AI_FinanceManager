@@ -60,7 +60,7 @@ def classify_sms_type(sms_text: str) -> str:
     
     Returns: 'UPI', 'CREDIT_CARD', 'DEBIT_CARD', 'SUBSCRIPTION', 'NET_BANKING', or 'OTHER'
     """
-    lower_sms = sms_text.lower()
+    lower_sms = (sms_text or "").lower()
     
     # Check for subscription services first (most specific)
     for service_name, keywords in SUBSCRIPTION_SERVICES.items():
@@ -88,7 +88,7 @@ def classify_sms_type(sms_text: str) -> str:
 
 def identify_subscription_service(sms_text: str) -> Optional[str]:
     """Identify which subscription service the SMS is about"""
-    lower_sms = sms_text.lower()
+    lower_sms = (sms_text or "").lower()
     
     for service_name, keywords in SUBSCRIPTION_SERVICES.items():
         if any(keyword in lower_sms for keyword in keywords):
@@ -99,7 +99,7 @@ def identify_subscription_service(sms_text: str) -> Optional[str]:
 
 def identify_merchant_category(vendor_name: str) -> str:
     """Identify detailed merchant category based on vendor name"""
-    lower_vendor = vendor_name.lower()
+    lower_vendor = (vendor_name or "").lower()
     
     for category, merchants in MERCHANT_CATEGORIES.items():
         if any(merchant in lower_vendor for merchant in merchants):
@@ -313,6 +313,13 @@ async def classify_and_parse_sms(sms_text: str) -> Dict[str, Any]:
     Main function to classify SMS type and route to appropriate parser
     """
     try:
+        # Guard against None or empty SMS
+        if not isinstance(sms_text, str) or not sms_text.strip():
+            return {
+                'success': False,
+                'error': 'Empty SMS text',
+                'sms_type': 'ERROR'
+            }
         # First classify the SMS type
         sms_type = classify_sms_type(sms_text)
         

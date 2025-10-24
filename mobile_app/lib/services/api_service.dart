@@ -2,32 +2,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/transaction.dart';
 import 'dart:io';
+import '../config/network_config.dart';
+import 'auth_service.dart';
 
 class ApiService {
-  // Configuration for different environments
-  // Android Emulator: 10.0.2.2:8000
-  // iOS Simulator: localhost:8000 or 127.0.0.1:8000
-  // Physical Device: Your computer's IP address (e.g., 192.168.1.100:8000)
-  // Web/Desktop: localhost:8000
-  
-  static String get baseUrl {
-    // Configuration based on your setup:
-    // - Android Emulator: 10.0.2.2:8000
-    // - Physical Device: 192.168.0.105:8000 (your computer's IP)
-    // - iOS Simulator: localhost:8000
-    
-    if (Platform.isAndroid) {
-      // For physical Android device, use your computer's actual IP
-      // For Android emulator, use 'http://10.0.2.2:8000'
-      return 'http://172.20.10.3:8000';  // Updated to current IP
-    } else if (Platform.isIOS) {
-      // For iOS simulator
-      return 'http://localhost:8000';
-    } else {
-      // For web/desktop
-      return 'http://localhost:8000';
-    }
-  }
+  // 🌐 Using central network configuration
+  static String get baseUrl => NetworkConfig.baseUrl;
 
   static const bool offlineMode = false; // Set to false to use the backend server
   // Health check endpoint
@@ -39,7 +19,7 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl/health'),
         headers: {'Content-Type': 'application/json'},
-      ).timeout(Duration(seconds: 10));
+      ).timeout(Duration(seconds: 15));
 
       print('🔍 Response status: ${response.statusCode}');
       
@@ -56,7 +36,8 @@ class ApiService {
       
       // Try alternative URLs for physical device
       final alternativeUrls = [
-        'http://192.168.0.105:8000', // Your computer's actual IP
+        'http://192.168.0.100:8000', // Your computer's actual IP
+        'http://192.168.0.105:8000', // Previous IP (backup)
         'http://192.168.56.1:8000',  // Alternative IP
         'http://192.168.10.1:8000',  // Alternative IP
         'http://10.0.2.2:8000',      // For emulator
@@ -104,11 +85,37 @@ class ApiService {
     }
     
     try {
+      // Try authenticated endpoint first if user is logged in
+      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
+        print('🔐 Using authenticated SMS parsing endpoint');
+        final response = await http.post(
+          Uri.parse('$baseUrl/v1/parse-sms'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AuthService.accessToken}',
+          },
+          body: json.encode({'sms_text': smsText}),
+        ).timeout(Duration(seconds: 60));
+        
+        if (response.statusCode == 200) {
+          print('✅ Authenticated SMS parsing successful');
+          return json.decode(response.body);
+        } else if (response.statusCode == 401) {
+          // Token expired, try to refresh
+          await AuthService.refreshToken();
+          // Retry with new token
+          return await parseSms(smsText);
+        }
+        print('⚠️ Authenticated SMS parsing failed: ${response.statusCode}, falling back to public');
+      }
+      
+      // Fallback to public endpoint
+      print('⚠️ Using public SMS parsing endpoint');
       final response = await http.post(
         Uri.parse('$baseUrl/v1/parse-sms-public'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'sms_text': smsText}),
-      );
+      ).timeout(Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -122,15 +129,47 @@ class ApiService {
     }
   }
 
-  // Get all transactions
+  // Get all transactions (user-specific if authenticated)
   Future<List<Transaction>> getTransactions() async {
     try {
+      // Try authenticated endpoint first
+      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
+        final response = await http.get(
+          Uri.parse('$baseUrl/v1/transactions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AuthService.accessToken}',
+          },
+        );
+        print('✅ getTransactions (authenticated) response status: ${response.statusCode}');
+        
+        if (response.statusCode == 200) {
+          final List<dynamic> transactionsJson = json.decode(response.body);
+          print('✅ Successfully parsed ${transactionsJson.length} user-specific transactions');
+          
+          return transactionsJson
+              .map((json) => Transaction.fromJson(json))
+              .toList();
+        } else if (response.statusCode == 401) {
+          // Token expired, try to refresh
+          print('🔄 Token expired, refreshing...');
+          await AuthService.refreshToken();
+          // Retry with new token
+          return await getTransactions();
+        } else {
+          print('❌ Authenticated endpoint failed: ${response.statusCode}');
+          print('❌ Error body: ${response.body}');
+        }
+      }
+      
+      // Fallback to public endpoint (shows all transactions - not ideal)
+      print('⚠️ Using public endpoint - transactions not user-isolated');
       final response = await http.get(Uri.parse('$baseUrl/v1/transactions-public'));
-      print('✅ getTransactions response status: ${response.statusCode}');
+      print('✅ getTransactions (public) response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final List<dynamic> transactionsJson = json.decode(response.body);
-        print('✅ Successfully parsed ${transactionsJson.length} transactions');
+        print('✅ Successfully parsed ${transactionsJson.length} transactions (all users)');
         
         return transactionsJson
             .map((json) => Transaction.fromJson(json))
@@ -148,22 +187,109 @@ class ApiService {
   // Save a transaction to the backend
   Future<Map<String, dynamic>> saveTransaction(Transaction transaction) async {
     try {
-      final response = await http.post(
+      // Prefer authenticated endpoint for proper user isolation
+      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
+        final headers = {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        };
+
+        final authResponse = await http.post(
+          Uri.parse('$baseUrl/v1/transactions'),
+          headers: headers,
+          body: json.encode(transaction.toJson()),
+        );
+
+        if (authResponse.statusCode == 200 || authResponse.statusCode == 201) {
+          return json.decode(authResponse.body);
+        } else if (authResponse.statusCode == 401) {
+          // Try refresh token once
+          await AuthService.refreshToken();
+          final retryHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AuthService.accessToken}',
+          };
+          final retryResponse = await http.post(
+            Uri.parse('$baseUrl/v1/transactions'),
+            headers: retryHeaders,
+            body: json.encode(transaction.toJson()),
+          );
+          if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+            return json.decode(retryResponse.body);
+          }
+          print('❌ Authenticated save failed after refresh: ${retryResponse.statusCode}');
+          print('❌ Error body: ${retryResponse.body}');
+        } else {
+          print('❌ Authenticated save failed: ${authResponse.statusCode}');
+          print('❌ Error body: ${authResponse.body}');
+        }
+      }
+
+      // Fallback to public endpoint (not user-isolated)
+      final publicResponse = await http.post(
         Uri.parse('$baseUrl/v1/transactions-public'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(transaction.toJson()),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return json.decode(response.body);
+      if (publicResponse.statusCode == 200 || publicResponse.statusCode == 201) {
+        return json.decode(publicResponse.body);
       } else {
-        print('Error response body: ${response.body}'); // Add this line
-        throw Exception('Failed to save transaction: ${response.statusCode}');
+        print('Error response body: ${publicResponse.body}'); // Add this line
+        throw Exception('Failed to save transaction: ${publicResponse.statusCode}');
       }
     } catch (e) {
       print('Network error in saveTransaction: $e'); // Add this line
       throw Exception('Network error: $e');
     }
+  }
+
+  // Quick batch SMS parsing (authenticated, background job)
+  Future<Map<String, dynamic>> startParseSmsBatch(
+    List<String> smsTexts, {
+    int batchSize = 3,
+    int delaySeconds = 3,
+  }) async {
+    if (!(AuthService.isLoggedIn && AuthService.accessToken != null)) {
+      throw Exception('Authentication required for batch parsing');
+    }
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ${AuthService.accessToken}',
+    };
+
+    final body = json.encode({
+      'sms_texts': smsTexts,
+      'batch_size': batchSize,
+      'delay_seconds': delaySeconds,
+    });
+
+    final resp = await http
+        .post(Uri.parse('$baseUrl/v1/quick/parse-sms-batch'), headers: headers, body: body)
+        .timeout(Duration(seconds: 30));
+
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+
+    print('❌ startParseSmsBatch failed: ${resp.statusCode}');
+    print('❌ Body: ${resp.body}');
+    throw Exception('Failed to start batch parsing: ${resp.statusCode}');
+  }
+
+  Future<Map<String, dynamic>> getQuickJobStatus(String jobId) async {
+    final resp = await http
+        .get(Uri.parse('$baseUrl/v1/quick/job-status/$jobId'), headers: {'Content-Type': 'application/json'})
+        .timeout(Duration(seconds: 30));
+
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+
+    print('❌ getQuickJobStatus failed: ${resp.statusCode}');
+    print('❌ Body: ${resp.body}');
+    throw Exception('Failed to get job status: ${resp.statusCode}');
   }
 
   Future<Map<String, dynamic>> categorizeVendor(String vendor) async {
@@ -208,9 +334,21 @@ class ApiService {
   // Analytics endpoints
   Future<Map<String, dynamic>> getSpendingByCategory() async {
     try {
+      // Use authenticated endpoint if logged in
+      String endpoint = '/v1/analytics/spending-by-category';
+      Map<String, String> headers = {'Content-Type': 'application/json'};
+      
+      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
+        headers['Authorization'] = 'Bearer ${AuthService.accessToken}';
+        print('🔐 Using authenticated analytics endpoint');
+      } else {
+        endpoint = '/v1/analytics/spending-by-category-public';
+        print('⚠️ Using public analytics endpoint - not user-isolated');
+      }
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/spending-by-category-public'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl$endpoint'),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -527,6 +665,69 @@ class ApiService {
       }
     } catch (e) {
       print('Network error in getFinancialSummary: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Enhanced Chatbot with transaction context
+  Future<Map<String, dynamic>> queryEnhancedChatbot(String query, {bool useCache = true, bool includeContext = true}) async {
+    try {
+      // Check if user is authenticated
+      if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+        throw Exception('Authentication required for enhanced chatbot');
+      }
+
+      print('🤖 Using enhanced chatbot with transaction context');
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/enhanced-chatbot/ask'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+        body: json.encode({
+          'query': query,
+          'use_cache': useCache,
+          'include_context': includeContext,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        print('🤖 Enhanced chatbot response: cached=${result['cached']}, quality=${result['data_quality']['quality_score']}%');
+        return result;
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get enhanced chatbot response: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in queryEnhancedChatbot: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Get data quality report
+  Future<Map<String, dynamic>> getDataQualityReport() async {
+    try {
+      if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+        throw Exception('Authentication required for data quality report');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/v1/enhanced-chatbot/data-quality'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get data quality report: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in getDataQualityReport: $e');
       throw Exception('Network error: $e');
     }
   }

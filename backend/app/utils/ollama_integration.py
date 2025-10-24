@@ -226,3 +226,45 @@ class OllamaAssistant:
         except Exception as e:
             print(f"Spending analysis error: {e}")
             return {'success': False, 'error': str(e)}
+    
+    async def generate_response(self, prompt: str, model: str = "llama3.1:latest") -> Dict[str, Any]:
+        """Generate a general response using Ollama LLM
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            model: The model to use (default: llama3.1:latest)
+            
+        Returns:
+            Dict containing the response or error
+        """
+        try:
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "stream": False
+            }
+            
+            response = requests.post(
+                f"{self.host}/api/generate",
+                json=payload,
+                timeout=60
+            )
+            
+            if response.status_code != 200:
+                raise requests.exceptions.RequestException(
+                    f"Ollama API returned status {response.status_code}: {response.text}"
+                )
+            
+            response_data = response.json()
+            return {
+                'success': True,
+                'response': response_data.get('response', ''),
+                'model': response_data.get('model', model)
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'response': f'Error generating response: {str(e)}'
+            }

@@ -250,7 +250,7 @@ class TransactionDetailsSheet extends StatelessWidget {
           
           _buildDetailRow('Vendor', transaction.vendor),
           _buildDetailRow('Amount', transaction.formattedAmount),
-          _buildDetailRow('Type', transaction.transactionType.toUpperCase()),
+          // _buildDetailRow('Type', transaction.transactionType.toUpperCase()), // Removed - field no longer exists
           _buildDetailRow(
             'Date', 
             DateFormat('MMMM dd, yyyy at hh:mm a').format(transaction.parsedDate),
@@ -291,7 +291,7 @@ class TransactionDetailsSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              transaction.rawText,
+              transaction.smsText,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[700],

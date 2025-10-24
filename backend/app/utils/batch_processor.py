@@ -15,12 +15,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BatchTransactionProcessor:
-    def __init__(self, batch_size: int = 5, delay_between_batches: int = 2):
+    def __init__(self, batch_size: int = 2, delay_between_batches: int = 8):
         """Initialize batch processor
         
         Args:
             batch_size: Number of transactions to process in each batch
-            delay_between_batches: Delay in seconds between batches to avoid overwhelming Ollama
+            delay_between_batches: Delay in seconds between batches to avoid overwhelming Ollama (increased for stability)
         """
         self.batch_size = batch_size
         self.delay_between_batches = delay_between_batches

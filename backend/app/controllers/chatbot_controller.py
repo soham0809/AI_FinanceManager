@@ -17,11 +17,13 @@ def format_transactions_for_prompt(transactions: List[Transaction]) -> str:
     transaction_lines = []
     for t in transactions:
         # Format transaction data for the AI
+        # Determine transaction type based on amount (negative = debit, positive = credit)
+        transaction_type = "debit" if t.amount < 0 else "credit"
         transaction_lines.append(
-            f"- Date: {t.date.strftime('%Y-%m-%d')}, "
+            f"- Date: {t.date}, "
             f"Vendor: {t.vendor}, "
-            f"Amount: ₹{t.amount:.2f}, "
-            f"Type: {t.transaction_type}, "
+            f"Amount: ₹{abs(t.amount):.2f}, "
+            f"Type: {transaction_type}, "
             f"Category: {t.category}"
         )
     
@@ -81,7 +83,9 @@ async def get_chatbot_response(query: str, transactions: List[Transaction]) -> D
         return {
             "response": simple_response,
             "transaction_count": len(transactions),
-            "query": query
+            "query": query,
+            "source": "analytics",  # Indicates response from built-in analytics
+            "source_description": "Built-in Analytics"
         }
     
     # If simple response doesn't work, try AI (with timeout protection)
@@ -103,14 +107,18 @@ Keep under 100 words. Use ₹ for currency.
         return {
             "response": response,
             "transaction_count": len(transactions),
-            "query": query
+            "query": query,
+            "source": "ai_model",  # Indicates response from AI model
+            "source_description": "Ollama AI (llama3.1:latest)"
         }
     except:
         # Fallback to simple response
         return {
             "response": f"I found {len(transactions)} transactions in your account. You can ask me about spending patterns, categories, or specific vendors. For example: 'How much did I spend on food?' or 'What's my biggest expense?'",
             "transaction_count": len(transactions),
-            "query": query
+            "query": query,
+            "source": "fallback",  # Indicates fallback response
+            "source_description": "Default Response"
         }
 
 
@@ -121,24 +129,24 @@ def generate_simple_response(query: str, transactions: List[Transaction]) -> str
     if not transactions:
         return "I don't see any transactions yet. Once you add some transactions, I'll be able to help analyze your spending!"
     
-    # Calculate basic stats
-    total_spent = sum(t.amount for t in transactions if t.transaction_type == 'debit')
-    total_earned = sum(t.amount for t in transactions if t.transaction_type == 'credit')
+    # Calculate basic stats (assuming negative amounts are debits, positive are credits)
+    total_spent = sum(abs(t.amount) for t in transactions if t.amount < 0)
+    total_earned = sum(t.amount for t in transactions if t.amount > 0)
     
     # Category breakdown
     categories = {}
     vendors = {}
     for t in transactions:
-        if t.transaction_type == 'debit':
-            categories[t.category] = categories.get(t.category, 0) + t.amount
-            vendors[t.vendor] = vendors.get(t.vendor, 0) + t.amount
+        if t.amount < 0:  # Debit transactions
+            categories[t.category] = categories.get(t.category, 0) + abs(t.amount)
+            vendors[t.vendor] = vendors.get(t.vendor, 0) + abs(t.amount)
     
     # Common query patterns
     if any(word in query_lower for word in ['spend', 'spent', 'total', 'much']):
         if 'month' in query_lower:
             return f"Based on your recent transactions, you've spent ₹{total_spent:.2f} and earned ₹{total_earned:.2f}. Your net spending is ₹{total_spent - total_earned:.2f}."
         else:
-            return f"You've spent ₹{total_spent:.2f} across {len([t for t in transactions if t.transaction_type == 'debit'])} transactions."
+            return f"You've spent ₹{total_spent:.2f} across {len([t for t in transactions if t.amount < 0])} transactions."
     
     if any(word in query_lower for word in ['category', 'categories', 'breakdown']):
         if categories:
@@ -156,7 +164,9 @@ def generate_simple_response(query: str, transactions: List[Transaction]) -> str
     
     if 'average' in query_lower:
         if transactions:
-            avg_amount = total_spent / len([t for t in transactions if t.transaction_type == 'debit'])
+            debit_transactions = [t for t in transactions if t.amount < 0]
+            if debit_transactions:
+                avg_amount = total_spent / len(debit_transactions)
             return f"Your average transaction amount is ₹{avg_amount:.2f}."
     
     return None  # Let AI handle complex queries
@@ -195,14 +205,14 @@ async def get_spending_summary(transactions: List[Transaction]) -> Dict[str, Any
     if not transactions:
         return {"total_spent": 0, "categories": {}, "recent_count": 0}
     
-    # Calculate basic statistics
-    total_spent = sum(t.amount for t in transactions if t.transaction_type == 'debit')
-    total_earned = sum(t.amount for t in transactions if t.transaction_type == 'credit')
+    # Calculate basic statistics (negative amounts = debits, positive = credits)
+    total_spent = sum(abs(t.amount) for t in transactions if t.amount < 0)
+    total_earned = sum(t.amount for t in transactions if t.amount > 0)
     
     # Category breakdown
     categories = {}
     for t in transactions:
-        if t.transaction_type == 'debit':  # Only count expenses
+        if t.amount < 0:  # Only count expenses (negative amounts)
             if t.category in categories:
                 categories[t.category] += t.amount
             else:

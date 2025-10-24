@@ -10,6 +10,7 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 1 month validity for refresh tokens
     
     # External APIs
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
