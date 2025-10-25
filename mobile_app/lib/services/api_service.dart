@@ -69,7 +69,7 @@ class ApiService {
   }
 
   // Parse SMS and extract transaction data
-  Future<Map<String, dynamic>> parseSms(String smsText) async {
+  Future<Map<String, dynamic>> parseSms(String smsText, {bool useLocal = false}) async {
     if (offlineMode) {
       // Return mock data for offline testing
       await Future.delayed(Duration(milliseconds: 500)); // Simulate network delay
@@ -85,11 +85,15 @@ class ApiService {
     }
     
     try {
+      // Decide endpoint based on parsing mode
+      final String authedPath = useLocal ? '/v1/parse-sms-local' : '/v1/parse-sms';
+      final String publicPath = useLocal ? '/v1/parse-sms-local-public' : '/v1/parse-sms-public';
+
       // Try authenticated endpoint first if user is logged in
       if (AuthService.isLoggedIn && AuthService.accessToken != null) {
-        print('🔐 Using authenticated SMS parsing endpoint');
+        print('🔐 Using ${useLocal ? 'LOCAL' : 'LLM'} authenticated SMS parsing endpoint');
         final response = await http.post(
-          Uri.parse('$baseUrl/v1/parse-sms'),
+          Uri.parse('$baseUrl$authedPath'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ${AuthService.accessToken}',
@@ -98,21 +102,21 @@ class ApiService {
         ).timeout(Duration(seconds: 60));
         
         if (response.statusCode == 200) {
-          print('✅ Authenticated SMS parsing successful');
+          print('✅ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing successful');
           return json.decode(response.body);
         } else if (response.statusCode == 401) {
           // Token expired, try to refresh
           await AuthService.refreshToken();
           // Retry with new token
-          return await parseSms(smsText);
+          return await parseSms(smsText, useLocal: useLocal);
         }
-        print('⚠️ Authenticated SMS parsing failed: ${response.statusCode}, falling back to public');
+        print('⚠️ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing failed: ${response.statusCode}, falling back to public');
       }
       
       // Fallback to public endpoint
-      print('⚠️ Using public SMS parsing endpoint');
+      print('⚠️ Using ${useLocal ? 'LOCAL' : 'LLM'} public SMS parsing endpoint');
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/parse-sms-public'),
+        Uri.parse('$baseUrl$publicPath'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'sms_text': smsText}),
       ).timeout(Duration(seconds: 60));
@@ -249,6 +253,7 @@ class ApiService {
     List<String> smsTexts, {
     int batchSize = 3,
     int delaySeconds = 3,
+    bool useLocal = false,
   }) async {
     if (!(AuthService.isLoggedIn && AuthService.accessToken != null)) {
       throw Exception('Authentication required for batch parsing');
@@ -265,8 +270,10 @@ class ApiService {
       'delay_seconds': delaySeconds,
     });
 
+    final String path = useLocal ? '/v1/quick/parse-sms-batch-local' : '/v1/quick/parse-sms-batch';
+
     final resp = await http
-        .post(Uri.parse('$baseUrl/v1/quick/parse-sms-batch'), headers: headers, body: body)
+        .post(Uri.parse('$baseUrl$path'), headers: headers, body: body)
         .timeout(Duration(seconds: 30));
 
     if (resp.statusCode == 200) {

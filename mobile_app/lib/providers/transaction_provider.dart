@@ -131,14 +131,14 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Parse SMS and add transaction
-  Future<Map<String, dynamic>> parseSms(String smsText) async {
+  Future<Map<String, dynamic>> parseSms(String smsText, {bool useLocal = false}) async {
     _isLoading = true;
     _error = null;
     // Don't notify listeners immediately to avoid build phase conflicts
     
     try {
 
-      final response = await apiService.parseSms(smsText);
+      final response = await apiService.parseSms(smsText, useLocal: useLocal);
       
       if (response['success'] == true) {
         final transaction = Transaction(
@@ -166,8 +166,8 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Legacy method for compatibility
-  Future<void> parseSMSAndAddTransaction(String smsText) async {
-    await parseSms(smsText);
+  Future<void> parseSMSAndAddTransaction(String smsText, {bool useLocal = false}) async {
+    await parseSms(smsText, useLocal: useLocal);
   }
 
   // Get total spending

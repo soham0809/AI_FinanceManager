@@ -414,9 +414,15 @@ def main():
     print(f"\n{Colors.BOLD}Step 2: Flutter Configuration{Colors.END}")
     update_flutter_ip(ip_address)
     
-    # Step 3: Database setup (Reset)
-    print(f"\n{Colors.BOLD}Step 3: Database Reset{Colors.END}")
-    reset_database()
+    # Step 3: Database setup (Preserve by default)
+    print(f"\n{Colors.BOLD}Step 3: Database Setup{Colors.END}")
+    reset_requested = (os.getenv("RESET_DB") == "1") or ("--reset-db" in sys.argv)
+    if reset_requested:
+        print(f"{Colors.YELLOW}⚠️  Reset requested (RESET_DB=1 or --reset-db). Preserving data will be skipped.{Colors.END}")
+        reset_database()
+    else:
+        print(f"{Colors.GREEN}✅ Skipping database reset (preserving existing data){Colors.END}")
+        print(f"{Colors.GRAY if hasattr(Colors, 'GRAY') else ''}   Set RESET_DB=1 or run with --reset-db to force a reset{Colors.END}")
     
     # Step 4: Check Ollama
     print(f"\n{Colors.BOLD}Step 4: AI Service Check{Colors.END}")

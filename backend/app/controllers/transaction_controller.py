@@ -128,6 +128,42 @@ class TransactionController:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
     
+    def parse_sms_local_quick(
+        self,
+        db: Session,
+        sms_text: str,
+        user_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Fast local-only SMS parse using regex-based SMSParser; no LLM"""
+        try:
+            parsed = self.sms_parser.parse_transaction(sms_text)
+            if not parsed.get('success'):
+                raise HTTPException(status_code=400, detail=parsed.get('error', 'Failed to parse SMS'))
+            vendor = parsed.get('vendor', 'Unknown')
+            amount = float(parsed.get('amount', 0) or 0)
+            category = parsed.get('category', 'Others')
+            date_str = parsed.get('date') or datetime.now().strftime('%Y-%m-%d')
+            confidence = float(parsed.get('confidence', 0.8))
+            transaction = self.create_transaction(
+                db=db,
+                vendor=vendor,
+                amount=amount,
+                date=date_str,
+                category=category,
+                sms_text=sms_text,
+                confidence=confidence,
+                user_id=user_id
+            )
+            return {
+                'success': True,
+                'transaction': transaction,
+                'method': 'local_quick'
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Local quick parse failed: {str(e)}")
+    
     def create_enhanced_transaction(
         self,
         db: Session,

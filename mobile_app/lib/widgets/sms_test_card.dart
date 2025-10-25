@@ -11,6 +11,7 @@ class SMSTestCard extends StatefulWidget {
 
 class _SMSTestCardState extends State<SMSTestCard> {
   final TextEditingController _smsController = TextEditingController();
+  bool _useLocal = true;
   
   // Sample SMS messages for testing
   final List<String> sampleSMS = [
@@ -81,6 +82,30 @@ class _SMSTestCardState extends State<SMSTestCard> {
             ),
             
             const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text('Parsing Mode:'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('🚀 NLP Quick Parse (Fast)'),
+                        selected: _useLocal,
+                        onSelected: (v) => setState(() => _useLocal = true),
+                      ),
+                      const SizedBox(height: 4),
+                      ChoiceChip(
+                        label: const Text('🤖 LLM Detailed Parse (Accurate)'),
+                        selected: !_useLocal,
+                        onSelected: (v) => setState(() => _useLocal = false),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             
             // Parse button
             SizedBox(
@@ -113,7 +138,7 @@ class _SMSTestCardState extends State<SMSTestCard> {
     if (_smsController.text.trim().isEmpty) return;
     
     try {
-      await provider.parseSMSAndAddTransaction(_smsController.text.trim());
+      await provider.parseSMSAndAddTransaction(_smsController.text.trim(), useLocal: _useLocal);
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

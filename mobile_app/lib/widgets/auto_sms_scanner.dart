@@ -20,6 +20,7 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
   bool _hasPermissions = false;
   int _foundTransactions = 0;
   String? _scanStatus;
+  bool _useLocalBatch = true;
 
   @override
   void initState() {
@@ -71,13 +72,14 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
 
       // Use server-side LLM batch parsing with progress polling
       final provider = context.read<TransactionProvider>();
-      setState(() => _scanStatus = 'Starting LLM batch parsing on server...');
+      setState(() => _scanStatus = _useLocalBatch ? 'Starting LOCAL batch parsing on server...' : 'Starting LLM batch parsing on server...');
 
       // Kick off background batch job
       final startResp = await provider.apiService.startParseSmsBatch(
         smsMessages,
         batchSize: 12,
         delaySeconds: 2,
+        useLocal: _useLocalBatch,
       );
       final String jobId = startResp['job_id'];
 
@@ -105,19 +107,19 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
           }
 
           if (processed != lastProcessed) {
-            setState(() => _scanStatus = 'LLM parsing... $processed/$total (✓$success ✗$failed)' + lastInfo);
+            setState(() => _scanStatus = (_useLocalBatch ? 'LOCAL parsing' : 'LLM parsing') + '... ' + '$processed/$total (✓$success ✗$failed)' + lastInfo);
             lastProcessed = processed;
           }
 
           if (s == 'completed') {
             setState(() {
               _foundTransactions = success is int ? success : 0;
-              _scanStatus = 'Batch completed: $success saved, $failed failed';
+              _scanStatus = (_useLocalBatch ? 'Local' : 'LLM') + ' batch completed: $success saved, $failed failed';
             });
             break;
           }
           if (s == 'failed') {
-            setState(() => _scanStatus = 'Batch failed after $processed/$total');
+            setState(() => _scanStatus = (_useLocalBatch ? 'Local' : 'LLM') + ' batch failed after $processed/$total');
             break;
           }
         } catch (e) {
@@ -135,7 +137,7 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ LLM batch parsed ${smsMessages.length} SMS. Saved $_foundTransactions transactions.'),
+            content: Text('✅ ' + (_useLocalBatch ? 'LOCAL' : 'LLM') + ' batch parsed ${smsMessages.length} SMS. Saved $_foundTransactions transactions.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 5),
           ),
@@ -478,6 +480,40 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
                 const SizedBox(height: 12),
               ],
               
+              // Mode toggle: NLP vs LLM
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Batch Parsing Mode:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('🚀 NLP Quick Parse'),
+                          selected: _useLocalBatch,
+                          onSelected: (v) => setState(() => _useLocalBatch = true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('🤖 LLM Detailed Parse'),
+                          selected: !_useLocalBatch,
+                          onSelected: (v) => setState(() => _useLocalBatch = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _useLocalBatch ? 'Fast regex-based parsing' : 'AI-powered detailed analysis',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
               Row(
                 children: [
                   Expanded(

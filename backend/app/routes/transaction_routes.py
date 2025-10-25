@@ -59,10 +59,46 @@ async def parse_sms(
         confidence=transaction.confidence
     )
 
+@router.post("/parse-sms-local", response_model=TransactionResponse)
+async def parse_sms_local(
+    request: SMSRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Parse SMS quickly using local regex-based parser (no LLM)"""
+    result = transaction_controller.parse_sms_local_quick(db, request.sms_text, user_id=current_user.id)
+    transaction = result['transaction']
+    
+    return TransactionResponse(
+        id=transaction.id,
+        vendor=transaction.vendor,
+        amount=transaction.amount,
+        date=transaction.date,
+        category=transaction.category,
+        sms_text=transaction.sms_text,
+        confidence=transaction.confidence
+    )
+
 @router.post("/parse-sms-public", response_model=TransactionResponse)
 async def parse_sms_public(request: SMSRequest, db: Session = Depends(get_db)):
     """Parse SMS without authentication (for backward compatibility)"""
     result = await transaction_controller.parse_sms(db, request.sms_text)
+    transaction = result['transaction']
+    
+    return TransactionResponse(
+        id=transaction.id,
+        vendor=transaction.vendor,
+        amount=transaction.amount,
+        date=transaction.date,
+        category=transaction.category,
+        sms_text=transaction.sms_text,
+        confidence=transaction.confidence
+    )
+
+@router.post("/parse-sms-local-public", response_model=TransactionResponse)
+async def parse_sms_local_public(request: SMSRequest, db: Session = Depends(get_db)):
+    """Parse SMS quickly using local regex-based parser without authentication"""
+    result = transaction_controller.parse_sms_local_quick(db, request.sms_text, user_id=None)
     transaction = result['transaction']
     
     return TransactionResponse(
