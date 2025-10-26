@@ -156,11 +156,14 @@ class TransactionController:
             confidence = float(parsed.get('confidence', 0.8))
             
             # Check for duplicates in local parsing too
+            # Determine transaction type from parsed data
+            transaction_type = parsed.get('transaction_type', 'debit')
+
             duplicate_check_data = {
                 'vendor': vendor,
                 'amount': amount,
                 'date': date_str,
-                'transaction_type': 'debit',  # Default for local parsing
+                'transaction_type': transaction_type,
                 'category': category,
                 'sms_text': sms_text
             }
@@ -178,7 +181,8 @@ class TransactionController:
             if existing:
                 raise HTTPException(status_code=409, detail="SMS already processed for this user")
             
-            transaction = self.create_transaction(
+            # Create using enhanced path so transaction_type and extras are stored
+            transaction = self.create_enhanced_transaction(
                 db=db,
                 vendor=vendor,
                 amount=amount,
@@ -186,6 +190,7 @@ class TransactionController:
                 category=category,
                 sms_text=sms_text,
                 confidence=confidence,
+                parsed_data=parsed,
                 user_id=user_id
             )
             
@@ -231,7 +236,7 @@ class TransactionController:
                     # Fallback to current date if parsing fails
                     transaction_date = datetime.now()
             else:
-                transaction_date = date
+                transaction_date = date if isinstance(date, datetime) else datetime.now()
             
             # Validate date - if it's in the future, adjust it to current year
             current_year = datetime.now().year
@@ -239,11 +244,15 @@ class TransactionController:
                 # If year is 2026 or later, assume it should be current year
                 transaction_date = transaction_date.replace(year=current_year)
             
+            # Get transaction type from parsed_data or default to 'debit'
+            transaction_type = parsed_data.get('transaction_type', 'debit') if parsed_data else 'debit'
+            
             # Create transaction with enhanced fields
             transaction = Transaction(
                 vendor=vendor,
-                amount=amount,
-                date=date,  # Store as string to match existing DB
+                amount=abs(amount),  # Always store as positive
+                date=transaction_date,  # Store as DateTime object
+                transaction_type=transaction_type,  # REQUIRED: 'debit' or 'credit'
                 category=category,
                 sms_text=sms_text,
                 confidence=confidence,
@@ -296,7 +305,7 @@ class TransactionController:
                     # Fallback to current date if parsing fails
                     transaction_date = datetime.now()
             else:
-                transaction_date = date
+                transaction_date = date if isinstance(date, datetime) else datetime.now()
             
             # Validate date - if it's in the future, adjust it to current year
             current_year = datetime.now().year
@@ -306,8 +315,9 @@ class TransactionController:
             
             transaction = Transaction(
                 vendor=vendor,
-                amount=amount,
-                date=date,  # Store as string to match existing DB
+                amount=abs(amount),  # Always store as positive
+                date=transaction_date,  # Store as DateTime object
+                transaction_type='debit',  # Default to debit for simple creation
                 category=category,
                 sms_text=sms_text,
                 confidence=confidence,

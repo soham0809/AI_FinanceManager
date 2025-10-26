@@ -37,8 +37,8 @@ class BatchTransactionProcessor:
             List of transactions to process
         """
         query = db.query(Transaction).filter(
-            Transaction.raw_text.isnot(None),  # Has SMS text
-            Transaction.raw_text != ""         # SMS text is not empty
+            Transaction.sms_text.isnot(None),  # Has SMS text
+            Transaction.sms_text != ""         # SMS text is not empty
         ).order_by(Transaction.created_at.desc())
         
         if limit:
@@ -57,10 +57,10 @@ class BatchTransactionProcessor:
             Processing result dictionary
         """
         try:
-            logger.info(f"Processing transaction ID {transaction.id}: {transaction.raw_text[:50]}...")
+            logger.info(f"Processing transaction ID {transaction.id}: {transaction.sms_text[:50]}...")
             
             # Parse with Ollama
-            result = self.ollama_assistant.parse_sms_transaction(transaction.raw_text)
+            result = self.ollama_assistant.parse_sms_transaction(transaction.sms_text)
             
             if result['success']:
                 transaction_data = result['transaction_data']
@@ -70,7 +70,7 @@ class BatchTransactionProcessor:
                     'vendor': transaction.vendor,
                     'amount': transaction.amount,
                     'date': transaction.date,
-                    'transaction_type': transaction.transaction_type,
+                    'transaction_type': getattr(transaction, 'transaction_type', 'debit'),
                     'category': transaction.category,
                     'confidence': transaction.confidence
                 }
@@ -92,9 +92,10 @@ class BatchTransactionProcessor:
                 
                 # Update transaction type
                 new_type = transaction_data.get('transaction_type', '').lower()
-                if new_type and new_type != transaction.transaction_type:
+                current_type = getattr(transaction, 'transaction_type', 'debit')
+                if new_type and new_type != current_type:
                     transaction.transaction_type = new_type
-                    updates_made.append(f"type: '{original_data['transaction_type']}' -> '{new_type}'")
+                    updates_made.append(f"type: '{current_type}' -> '{new_type}'")
                 
                 # Update category
                 new_category = transaction_data.get('category', '')
@@ -107,11 +108,13 @@ class BatchTransactionProcessor:
                 if new_date and new_date != 'null':
                     try:
                         parsed_date = datetime.strptime(new_date, '%Y-%m-%d')
-                        if parsed_date.date() != transaction.date.date():
+                        # Handle both datetime and string dates
+                        current_date = transaction.date if isinstance(transaction.date, datetime) else datetime.strptime(str(transaction.date), '%Y-%m-%d')
+                        if parsed_date.date() != current_date.date():
                             transaction.date = parsed_date
-                            updates_made.append(f"date: {original_data['date'].date()} -> {parsed_date.date()}")
-                    except ValueError:
-                        logger.warning(f"Could not parse date: {new_date}")
+                            updates_made.append(f"date: {current_date.date()} -> {parsed_date.date()}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"Could not parse date: {new_date}, error: {e}")
                 
                 # Update confidence
                 new_confidence = transaction_data.get('confidence', 0.0)

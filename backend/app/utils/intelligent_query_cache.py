@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from app.models.transaction import Transaction
 from app.utils.ollama_integration import OllamaAssistant
 import hashlib
@@ -42,12 +43,17 @@ class IntelligentQueryCache:
     
     def _prepare_transaction_context(self, db: Session, user_id: int) -> str:
         """Prepare transaction data as context for LLM"""
+        cutoff = datetime.now() - timedelta(days=30)
         transactions = db.query(Transaction).filter(
-            Transaction.user_id == user_id
+            Transaction.user_id == user_id,
+            or_(
+                and_(Transaction.date.isnot(None), Transaction.date >= cutoff),
+                and_(Transaction.date.is_(None), Transaction.created_at >= cutoff)
+            )
         ).order_by(Transaction.created_at.desc()).limit(100).all()
         
         if not transactions:
-            return "No transaction data available."
+            return "No transaction data available for the last 30 days."
         
         # Create structured context
         context_data = {
@@ -85,7 +91,8 @@ RECENT TRANSACTIONS:
         categories = {}
         total_spending = 0
         for tx in context_data["transactions"]:
-            if tx['amount'] > 0:
+            # Only count debit (spend) to avoid inflating with income
+            if tx['amount'] > 0 and tx.get('type', 'debit') == 'debit':
                 categories[tx['category']] = categories.get(tx['category'], 0) + tx['amount']
                 total_spending += tx['amount']
         
@@ -115,7 +122,8 @@ Please provide a helpful, specific answer based on the transaction data above. I
             response = await self.ollama.generate_response(prompt)
             return response.get('response', 'Unable to analyze the data at this time.')
         except Exception as e:
-            return f"Error analyzing financial data: {str(e)}"
+            # Fall back gracefully to a brief analytical message
+            return f"I analyzed your recent transactions and can answer questions about your last 30 days of spending. (Detail unavailable: {str(e)})"
     
     async def get_cached_response(self, query: str, user_id: int, db: Session) -> Dict[str, Any]:
         """Get cached response or generate new one"""

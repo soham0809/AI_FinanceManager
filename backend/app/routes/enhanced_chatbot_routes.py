@@ -4,6 +4,7 @@ Uses parsed transactions as knowledge base and integrates with query cache
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, and_
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from app.config.database import get_db
@@ -20,10 +21,15 @@ router = APIRouter(prefix="/v1/enhanced-chatbot", tags=["enhanced-chatbot"])
 query_cache = IntelligentQueryCache()
 ollama_assistant = OllamaAssistant()
 
+# Simple in-memory session context (per user) for 15 minutes
+SESSION_CONTEXT: Dict[int, Dict[str, Any]] = {}
+SESSION_TTL_SECONDS = 900
+
 class EnhancedChatQuery(BaseModel):
     query: str
     use_cache: bool = True
     include_context: bool = True
+    refresh_session: bool = False
 
 class EnhancedChatResponse(BaseModel):
     response: str
@@ -45,25 +51,48 @@ async def enhanced_chatbot_query(
     start_time = datetime.now()
     
     try:
-        # Get user's transactions
-        transactions = db.query(Transaction).filter(
-            Transaction.user_id == current_user.id
-        ).order_by(Transaction.created_at.desc()).limit(100).all()
-        
-        if not transactions:
-            return EnhancedChatResponse(
-                response="I don't see any parsed transactions yet. Once you process some SMS messages, I'll be able to provide intelligent insights about your spending!",
-                transaction_count=0,
-                query=request.query,
-                cached=False,
-                processing_time=0.0,
-                context_used=False,
-                data_quality={"status": "no_data"}
-            )
-        
-        # Analyze data quality
-        data_quality = _analyze_data_quality(transactions)
-        
+        # Build or reuse session context: last 30 days up to 100 transactions
+        cutoff = datetime.now() - timedelta(days=30)
+        need_refresh = request.refresh_session or (current_user.id not in SESSION_CONTEXT) or (
+            SESSION_CONTEXT.get(current_user.id, {}).get("expires_at") is None or
+            SESSION_CONTEXT[current_user.id]["expires_at"] < datetime.now()
+        )
+
+        if need_refresh:
+            transactions = db.query(Transaction).filter(
+                Transaction.user_id == current_user.id,
+                or_(
+                    and_(Transaction.date.isnot(None), Transaction.date >= cutoff),
+                    and_(Transaction.date.is_(None), Transaction.created_at >= cutoff)
+                )
+            ).order_by(Transaction.created_at.desc()).limit(100).all()
+
+            if not transactions:
+                return EnhancedChatResponse(
+                    response="I don't see transactions from the last month. Once you process some SMS messages, I'll be able to provide insights!",
+                    transaction_count=0,
+                    query=request.query,
+                    cached=False,
+                    processing_time=0.0,
+                    context_used=False,
+                    data_quality={"status": "no_data"}
+                )
+
+            # Build rich context once per session and cache it
+            context_str = _prepare_rich_transaction_context(transactions)
+            SESSION_CONTEXT[current_user.id] = {
+                "context": context_str,
+                "count": len(transactions),
+                "built_at": datetime.now(),
+                "expires_at": datetime.now() + timedelta(seconds=SESSION_TTL_SECONDS)
+            }
+        else:
+            transactions = []  # Not needed when reusing context
+            context_str = SESSION_CONTEXT[current_user.id]["context"]
+
+        # Analyze data quality (when we have transactions freshly loaded)
+        data_quality = _analyze_data_quality(transactions) if transactions else {"status": "cached_context"}
+
         # Try cached response first if enabled
         if request.use_cache:
             try:
@@ -87,10 +116,16 @@ async def enhanced_chatbot_query(
         
         # Generate new response with enhanced context
         if request.include_context:
-            enhanced_response = await _generate_enhanced_response(
-                request.query, transactions, current_user.id
+            enhanced_response = await _generate_enhanced_response_with_context(
+                request.query, context_str, current_user.id
             )
         else:
+            # Fallback to simple analytics if no context requested
+            # Recompute minimal transactions for fallback if needed
+            if not transactions:
+                transactions = db.query(Transaction).filter(
+                    Transaction.user_id == current_user.id
+                ).order_by(Transaction.created_at.desc()).limit(30).all()
             enhanced_response = await _generate_simple_response(
                 request.query, transactions
             )
@@ -99,7 +134,7 @@ async def enhanced_chatbot_query(
         
         return EnhancedChatResponse(
             response=enhanced_response,
-            transaction_count=len(transactions),
+            transaction_count=SESSION_CONTEXT.get(current_user.id, {}).get("count", len(transactions)),
             query=request.query,
             cached=False,
             processing_time=processing_time,
@@ -121,10 +156,11 @@ async def enhanced_chatbot_query(
 
 async def _generate_enhanced_response(query: str, transactions: List[Transaction], user_id: int) -> str:
     """Generate enhanced response using transaction context and LLM"""
-    
-    # Prepare rich transaction context
     context = _prepare_rich_transaction_context(transactions)
-    
+    return await _generate_enhanced_response_with_context(query, context, user_id)
+
+async def _generate_enhanced_response_with_context(query: str, context: str, user_id: int) -> str:
+    """Generate enhanced response using a prebuilt context string and LLM"""
     # Create enhanced prompt
     prompt = f"""
 You are a financial advisor analyzing a user's transaction data. Provide helpful, specific insights based on the data.

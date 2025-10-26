@@ -54,10 +54,10 @@ Start-Sleep -Seconds 5
 Write-Host "⚙️  Step 3: Starting FastAPI Backend..." -ForegroundColor Cyan
 try {
     $backendPath = Join-Path $PSScriptRoot "backend"
-    Start-Process -FilePath "python" -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001" -WorkingDirectory $backendPath -WindowStyle Normal
+    Start-Process -FilePath "python" -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000" -WorkingDirectory $backendPath -WindowStyle Normal
     Write-Host "✅ Backend server started" -ForegroundColor Green
-    Write-Host "   - Host: http://0.0.0.0:8001" -ForegroundColor Gray
-    Write-Host "   - API Docs: http://localhost:8001/docs" -ForegroundColor Gray
+    Write-Host "   - Host: http://0.0.0.0:8000" -ForegroundColor Gray
+    Write-Host "   - API Docs: http://localhost:8000/docs" -ForegroundColor Gray
 } catch {
     Write-Host "❌ Failed to start backend: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
@@ -76,7 +76,7 @@ try {
     Write-Host "   - Global URL: https://ai-finance.sohamm.xyz" -ForegroundColor Gray
 } catch {
     Write-Host "❌ Failed to start Cloudflare tunnel: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "   System will work locally on http://localhost:8001" -ForegroundColor Yellow
+    Write-Host "   System will work locally on http://localhost:8000" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -116,7 +116,7 @@ Write-Host "============================" -ForegroundColor Green
 Write-Host ""
 Write-Host "📊 Service Status:" -ForegroundColor Cyan
 Write-Host "   🧠 Ollama AI: http://localhost:11434" -ForegroundColor White
-Write-Host "   ⚙️  Backend API: http://localhost:8001" -ForegroundColor White
+Write-Host "   ⚙️  Backend API: http://localhost:8000" -ForegroundColor White
 Write-Host "   🌐 Global Access: https://ai-finance.sohamm.xyz" -ForegroundColor White
 Write-Host ""
 Write-Host "📱 Flutter App:" -ForegroundColor Cyan
@@ -129,4 +129,8 @@ Write-Host "   • Delay between batches: 2 seconds" -ForegroundColor White
 Write-Host "   • API: POST /v1/batch/process-transactions" -ForegroundColor White
 Write-Host ""
 Write-Host "Press any key to exit..." -ForegroundColor Gray
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($Host -and $Host.UI -and $Host.UI.RawUI) {
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+} else {
+    Read-Host 'Press Enter to exit...'
+}

@@ -15,6 +15,11 @@ router = APIRouter(prefix="/v1", tags=["transactions"])
 # Initialize controller
 transaction_controller = TransactionController()
 
+# Helper to serialize dates for responses
+
+def _date_to_str(d):
+    return d.isoformat() if isinstance(d, datetime) else (d or "")
+
 # Pydantic models
 class SMSRequest(BaseModel):
     sms_text: str
@@ -53,7 +58,7 @@ async def parse_sms(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -73,7 +78,7 @@ async def parse_sms_local(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -89,7 +94,7 @@ async def parse_sms_public(request: SMSRequest, db: Session = Depends(get_db)):
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -105,7 +110,7 @@ async def parse_sms_local_public(request: SMSRequest, db: Session = Depends(get_
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -126,7 +131,7 @@ async def get_transactions(
             id=t.id,
             vendor=t.vendor or "Unknown",
             amount=t.amount or 0.0,
-            date=t.date or "",
+            date=_date_to_str(t.date),
             category=t.category or "Others",
             sms_text=t.sms_text or "",
             confidence=t.confidence or 0.0
@@ -148,7 +153,7 @@ async def get_transactions_public(
             id=t.id,
             vendor=t.vendor or "Unknown",
             amount=t.amount or 0.0,
-            date=t.date or "",
+            date=_date_to_str(t.date),
             category=t.category or "Others",
             sms_text=t.sms_text or "",
             confidence=t.confidence or 0.0
@@ -169,7 +174,7 @@ async def get_transaction(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -197,7 +202,7 @@ async def create_transaction(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -223,7 +228,7 @@ async def create_transaction_public(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -245,7 +250,7 @@ async def update_transaction(
         id=transaction.id,
         vendor=transaction.vendor,
         amount=transaction.amount,
-        date=transaction.date,
+        date=_date_to_str(transaction.date),
         category=transaction.category,
         sms_text=transaction.sms_text,
         confidence=transaction.confidence
@@ -275,7 +280,7 @@ async def search_transactions(
             id=t.id,
             vendor=t.vendor or "Unknown",
             amount=t.amount or 0.0,
-            date=t.date or "",
+            date=_date_to_str(t.date),
             category=t.category or "Others",
             sms_text=t.sms_text or "",
             confidence=t.confidence or 0.0

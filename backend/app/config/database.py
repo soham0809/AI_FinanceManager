@@ -3,9 +3,10 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from app.config.settings import settings
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///financial_copilot.db")
+# Database configuration - use single source of truth from settings
+DATABASE_URL = settings.DATABASE_URL
 
 # SQLAlchemy setup
 engine = create_engine(

@@ -120,11 +120,13 @@ async def process_intelligent_sms_batch(
                 
                 if result.get('success', False):
                     success += 1
+                    # Access Transaction object fields correctly
+                    transaction = result.get('transaction')
                     transactions.append({
-                        "vendor": result.get('vendor'),
-                        "amount": result.get('amount'),
-                        "category": result.get('category'),
-                        "confidence": result.get('confidence')
+                        "vendor": transaction.vendor,
+                        "amount": transaction.amount,
+                        "category": transaction.category,
+                        "confidence": transaction.confidence
                     })
                 else:
                     failed += 1

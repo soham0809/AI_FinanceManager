@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
+from datetime import datetime
 
 from app.config.database import get_db
 from app.utils.batch_processor import BatchTransactionProcessor
@@ -85,14 +86,17 @@ async def preview_transactions_for_processing(
         
         preview_data = []
         for transaction in transactions:
+            # Handle date formatting properly
+            date_str = transaction.date.isoformat() if isinstance(transaction.date, datetime) else str(transaction.date)
+            
             preview_data.append({
                 'id': transaction.id,
                 'vendor': transaction.vendor,
                 'amount': transaction.amount,
-                'date': transaction.date.isoformat(),
+                'date': date_str,
                 'category': transaction.category,
                 'confidence': transaction.confidence,
-                'raw_text': transaction.raw_text[:100] + "..." if len(transaction.raw_text) > 100 else transaction.raw_text
+                'sms_text': transaction.sms_text[:100] + "..." if transaction.sms_text and len(transaction.sms_text) > 100 else transaction.sms_text
             })
         
         return {

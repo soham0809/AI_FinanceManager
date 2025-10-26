@@ -85,7 +85,7 @@ def update_flutter_ip(ip_address):
         return False
 
 def reset_database():
-    """Reset database - delete existing and create fresh"""
+    """Reset database - delete existing and create fresh using SQLAlchemy"""
     db_path = Path("backend/financial_copilot.db")
     
     # Remove existing database if it exists
@@ -97,50 +97,25 @@ def reset_database():
             print(f"{Colors.RED}❌ Failed to remove existing database: {e}{Colors.END}")
             return False
     
-    # Create fresh database with all required columns
+    # Create fresh database using SQLAlchemy models
     try:
-        conn = sqlite3.connect(str(db_path))
-        cursor = conn.cursor()
+        # Import required modules
+        sys.path.insert(0, str(Path("backend").absolute()))
+        from app.config.database import Base, engine
+        from app.models.user import User
+        from app.models.transaction import Transaction
         
-        # Create transactions table with all columns
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sms_text TEXT NOT NULL,
-                vendor TEXT,
-                amount REAL,
-                date TEXT,
-                category TEXT,
-                confidence REAL DEFAULT 0.0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                payment_method VARCHAR(50),
-                is_subscription BOOLEAN DEFAULT 0,
-                subscription_service VARCHAR(100),
-                card_last_four VARCHAR(4),
-                upi_transaction_id VARCHAR(255),
-                merchant_category VARCHAR(100),
-                is_recurring BOOLEAN DEFAULT 0
-            )
-        """)
+        # Create all tables from SQLAlchemy models
+        Base.metadata.create_all(bind=engine)
         
-        # Create users table if needed
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT UNIQUE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"{Colors.GREEN}✅ Fresh database created with all required columns{Colors.END}")
+        print(f"{Colors.GREEN}✅ Fresh database created using SQLAlchemy models{Colors.END}")
+        print(f"{Colors.CYAN}ℹ️  Database includes: users, transactions, categories tables{Colors.END}")
         return True
         
     except Exception as e:
         print(f"{Colors.RED}❌ Database creation failed: {e}{Colors.END}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def check_ollama():
