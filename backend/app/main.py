@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.config.database import engine, Base
-from app.routes import auth_routes, transaction_routes, analytics_routes, batch_routes, chatbot_routes, quick_routes, intelligent_filter_routes, enhanced_transaction_routes, spending_analytics_routes, intelligent_query_routes, enhanced_chatbot_routes
+from app.routes import auth_routes, transaction_routes, analytics_routes, batch_routes, chatbot_routes, quick_routes, intelligent_filter_routes, enhanced_transaction_routes, spending_analytics_routes, intelligent_query_routes, enhanced_chatbot_routes, predictions_routes
 from app.models import user, transaction
 
 # Create database tables
@@ -40,6 +40,7 @@ app.include_router(enhanced_transaction_routes.router)
 app.include_router(spending_analytics_routes.router)
 app.include_router(intelligent_query_routes.router)
 app.include_router(enhanced_chatbot_routes.router)
+app.include_router(predictions_routes.router)
 
 @app.get("/")
 async def root():

@@ -92,6 +92,17 @@ class TransactionProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Delete a single transaction locally and on backend (if possible)
+  Future<void> deleteTransaction(Transaction t) async {
+    try {
+      if (t.id != null && t.id!.isNotEmpty) {
+        await apiService.deleteTransaction(t.id!);
+      }
+    } catch (_) {}
+    _transactions.removeWhere((x) => x.id == t.id || (x.vendor == t.vendor && x.amount == t.amount && x.date == t.date));
+    notifyListeners();
+  }
+
   // Check server connection
   Future<void> checkConnection() async {
     _isLoading = true;

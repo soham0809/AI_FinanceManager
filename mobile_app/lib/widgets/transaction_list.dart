@@ -177,13 +177,20 @@ class TransactionCard extends StatelessWidget {
             ),
           ],
         ),
-        trailing: Text(
-          '${isDebit ? '-' : '+'}${transaction.formattedAmount}',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${isDebit ? '-' : '+'}${transaction.formattedAmount}',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _DeleteActionButton(transaction: transaction),
+          ],
         ),
         onTap: () => _showTransactionDetails(context, transaction),
       ),
@@ -211,6 +218,50 @@ class TransactionCard extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+}
+
+class _DeleteActionButton extends StatelessWidget {
+  final Transaction transaction;
+  const _DeleteActionButton({super.key, required this.transaction});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<TransactionProvider>(context, listen: false);
+    final lowConfidence = transaction.confidence < 0.85;
+    final color = lowConfidence ? Colors.red : Colors.grey.shade700;
+
+    Future<void> doDelete() async {
+      await provider.deleteTransaction(transaction);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Transaction deleted')),
+      );
+    }
+
+    return IconButton(
+      icon: Icon(Icons.delete_outline, color: color),
+      tooltip: lowConfidence ? 'Delete (low confidence)' : 'Delete',
+      onPressed: () async {
+        if (lowConfidence) {
+          await doDelete();
+        } else {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Delete transaction?'),
+              content: const Text('This transaction has high confidence. Do you want to delete it?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            await doDelete();
+          }
+        }
+      },
+    );
   }
 }
 

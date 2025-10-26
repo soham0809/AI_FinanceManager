@@ -182,6 +182,34 @@ class ApiService {
     }
   }
   
+  // Delete a transaction (authenticated only)
+  Future<void> deleteTransaction(String id) async {
+    try {
+      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
+        final resp = await http.delete(
+          Uri.parse('$baseUrl/v1/transactions/$id'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AuthService.accessToken}',
+          },
+        ).timeout(Duration(seconds: 15));
+        if (resp.statusCode == 200) {
+          return;
+        }
+        if (resp.statusCode == 401) {
+          await AuthService.refreshToken();
+          return await deleteTransaction(id);
+        }
+        // Non-200: log and still remove locally
+        print('❌ deleteTransaction failed: ${resp.statusCode} ${resp.body}');
+      } else {
+        print('⚠️ Not authenticated; skipping backend delete for id=$id');
+      }
+    } catch (e) {
+      print('❌ Network error in deleteTransaction: $e');
+    }
+  }
+
   // Save a transaction to the backend
   Future<Map<String, dynamic>> saveTransaction(Transaction transaction) async {
     try {

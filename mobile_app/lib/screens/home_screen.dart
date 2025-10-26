@@ -131,12 +131,31 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Quick Stats',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                const Text(
+                  'Quick Stats',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Reload',
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () async {
+                    final p = context.read<TransactionProvider>();
+                    await p.checkConnection();
+                    await p.fetchTransactions();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Quick stats reloaded')),
+                      );
+                    }
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Row(
