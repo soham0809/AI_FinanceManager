@@ -14,11 +14,31 @@ class _SMSTestCardState extends State<SMSTestCard> {
   bool _useLocal = true;
   
   // Sample SMS messages for testing
-  final List<String> sampleSMS = [
-    'Rs 450.00 debited from A/c **1234 on 10-Sep-24 at SWIGGY BANGALORE for UPI/123456789. Avl Bal Rs 15,234.56',
-    'Amount Rs 1250.50 paid to AMAZON PAY INDIA via UPI on 10-Sep-24. UPI Ref No 123456789012. Available Balance: Rs 8,765.43',
-    'Rs 75.00 debited for UBER TRIP on 10-Sep-24. Transaction ID: 987654321. Current Balance: Rs 12,890.25',
-    'You have received Rs 2000.00 from JOHN DOE via UPI on 10-Sep-24. Ref: 456789123. Balance: Rs 14,890.25',
+  final List<Map<String, String>> sampleSMS = [
+    {
+      'text': 'Rs 450.00 debited from A/c **1234 on 10-Sep-24 at SWIGGY BANGALORE for UPI/123456789. Avl Bal Rs 15,234.56',
+      'type': '✅ Valid Transaction'
+    },
+    {
+      'text': 'Amount Rs 1250.50 paid to AMAZON PAY INDIA via UPI on 10-Sep-24. UPI Ref No 123456789012. Available Balance: Rs 8,765.43',
+      'type': '✅ Valid Transaction'
+    },
+    {
+      'text': 'xyz has requested money through Google Pay. On approval Rs 1629.46 will be debited from your bank account.',
+      'type': '❌ Request (Should Filter)'
+    },
+    {
+      'text': 'John Doe is requesting Rs 500.00 via UPI. Tap to approve payment.',
+      'type': '❌ Request (Should Filter)'
+    },
+    {
+      'text': 'Your OTP for UPI transaction is 123456. Do not share with anyone. Valid for 10 minutes.',
+      'type': '❌ OTP (Should Filter)'
+    },
+    {
+      'text': 'Special offer! Get 50% cashback on your next order. Use code SAVE50. Limited time offer!',
+      'type': '❌ Promotional (Should Filter)'
+    },
   ];
 
   @override
@@ -50,20 +70,64 @@ class _SMSTestCardState extends State<SMSTestCard> {
             const SizedBox(height: 12),
             
             // Sample SMS buttons
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Column(
               children: sampleSMS.asMap().entries.map((entry) {
                 int index = entry.key;
-                return ElevatedButton(
-                  onPressed: () {
-                    _smsController.text = entry.value;
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade50,
-                    foregroundColor: Colors.blue.shade700,
+                final sample = entry.value;
+                final isValid = sample['type']!.startsWith('✅');
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _smsController.text = sample['text']!;
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isValid ? Colors.green.shade50 : Colors.red.shade50,
+                                foregroundColor: isValid ? Colors.green.shade700 : Colors.red.shade700,
+                              ),
+                              child: Text('Sample ${index + 1}'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isValid ? Colors.green.shade100 : Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              sample['type']!,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isValid ? Colors.green.shade700 : Colors.red.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 4),
+                        child: Text(
+                          sample['text']!,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text('Sample ${index + 1}'),
                 );
               }).toList(),
             ),
@@ -138,22 +202,60 @@ class _SMSTestCardState extends State<SMSTestCard> {
     if (_smsController.text.trim().isEmpty) return;
     
     try {
-      await provider.parseSMSAndAddTransaction(_smsController.text.trim(), useLocal: _useLocal);
+      final result = await provider.parseSms(_smsController.text.trim(), useLocal: _useLocal);
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('SMS parsed successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _smsController.clear();
+        if (result['filtered'] == true) {
+          // SMS was filtered out
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('🛡️ SMS Filtered: ${result['filter_reason']}'),
+                  Text('Confidence: ${(result['confidence'] * 100).toStringAsFixed(1)}%'),
+                  if (result['detected_keywords'] != null && result['detected_keywords'].isNotEmpty)
+                    Text('Keywords: ${result['detected_keywords'].join(', ')}'),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } else if (result['success'] == true) {
+          // Successfully parsed
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('✅ SMS parsed successfully!'),
+                  if (result['sms_analysis'] != null)
+                    Text('Filter confidence: ${(result['sms_analysis']['filter_confidence'] * 100).toStringAsFixed(1)}%'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          _smsController.clear();
+        } else {
+          // Parsing failed
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Failed to parse SMS: ${result['error'] ?? 'Unknown error'}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to parse SMS: ${provider.error}'),
+            content: Text('❌ Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

@@ -34,15 +34,9 @@ class ApiService {
       print('❌ Network error in healthCheck: $e');
       print('🔍 Trying alternative URLs...');
       
-      // Try alternative URLs for physical device
+      // Only use Cloudflare URL - no fallback to localhost
       final alternativeUrls = [
-        'http://192.168.0.100:8000', // Your computer's actual IP
-        'http://192.168.0.105:8000', // Previous IP (backup)
-        'http://192.168.56.1:8000',  // Alternative IP
-        'http://192.168.10.1:8000',  // Alternative IP
-        'http://10.0.2.2:8000',      // For emulator
-        'http://localhost:8000',     // Local testing
-        'http://127.0.0.1:8000',     // Alternative localhost
+        'https://ai-finance.sohamm.xyz', // Primary Cloudflare URL
       ];
       
       for (String altUrl in alternativeUrls) {
@@ -708,6 +702,60 @@ class ApiService {
       }
     } catch (e) {
       print('Network error in queryEnhancedChatbot: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Get monthly spending data
+  Future<Map<String, dynamic>> getMonthlySpending({int months = 6}) async {
+    try {
+      if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+        throw Exception('Authentication required for monthly spending data');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/v1/spending/monthly?months=$months'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get monthly spending: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in getMonthlySpending: $e');
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Get weekly spending data
+  Future<Map<String, dynamic>> getWeeklySpending({int weeks = 8}) async {
+    try {
+      if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+        throw Exception('Authentication required for weekly spending data');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/v1/spending/weekly?weeks=$weeks'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get weekly spending: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in getWeeklySpending: $e');
       throw Exception('Network error: $e');
     }
   }

@@ -41,6 +41,16 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         actions: [
           IconButton(
+            icon: const Icon(Icons.cleaning_services),
+            tooltip: 'Remove Duplicates',
+            onPressed: () {
+              context.read<TransactionProvider>().removeDuplicateTransactions();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Duplicate transactions removed')),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
               context.read<TransactionProvider>().checkConnection();

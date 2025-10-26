@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/transaction.dart';
 import '../services/api_service.dart';
+import '../services/sms_filter_service.dart';
 import 'package:uuid/uuid.dart';
 
 class TransactionProvider with ChangeNotifier {
@@ -27,11 +28,7 @@ class TransactionProvider with ChangeNotifier {
     // Generate a unique ID for the transaction if it doesn't have one
     final transactionWithId = (transaction.id == null || transaction.id!.isEmpty) ? transaction.copyWith(id: _uuid.v4()) : transaction;
 
-    final isDuplicate = _transactions.any((existing) =>
-        existing.id == transactionWithId.id || // Check for duplicate ID
-        (existing.amount == transactionWithId.amount &&
-            existing.vendor == transactionWithId.vendor &&
-            existing.date.substring(0, 10) == transactionWithId.date.substring(0, 10)));
+    final isDuplicate = _isTransactionDuplicate(transactionWithId);
 
     if (!isDuplicate) {
       try {
@@ -48,21 +45,21 @@ class TransactionProvider with ChangeNotifier {
         _transactions.insert(0, transactionWithId);
         notifyListeners();
       }
+    } else {
+      debugPrint('Duplicate transaction detected and skipped: ${transactionWithId.vendor} - Rs.${transactionWithId.amount}');
     }
   }
 
   // Add multiple transactions efficiently and save to backend
   Future<void> addTransactionsBatch(List<Transaction> transactions) async {
     bool hasNewTransactions = false;
+    int duplicatesSkipped = 0;
+    
     for (final transaction in transactions) {
       // Generate a unique ID for the transaction if it doesn't have one
       final transactionWithId = (transaction.id == null || transaction.id!.isEmpty) ? transaction.copyWith(id: _uuid.v4()) : transaction;
 
-      final isDuplicate = _transactions.any((existing) =>
-          existing.id == transactionWithId.id || // Check for duplicate ID
-          (existing.amount == transactionWithId.amount &&
-              existing.vendor == transactionWithId.vendor &&
-              existing.date.substring(0, 10) == transactionWithId.date.substring(0, 10)));
+      final isDuplicate = _isTransactionDuplicate(transactionWithId);
 
       if (!isDuplicate) {
         try {
@@ -75,8 +72,15 @@ class TransactionProvider with ChangeNotifier {
         
         _transactions.insert(0, transactionWithId);
         hasNewTransactions = true;
+      } else {
+        duplicatesSkipped++;
       }
     }
+    
+    if (duplicatesSkipped > 0) {
+      debugPrint('Skipped $duplicatesSkipped duplicate transactions in batch');
+    }
+    
     if (hasNewTransactions) {
       notifyListeners();
     }
@@ -130,13 +134,43 @@ class TransactionProvider with ChangeNotifier {
     }
   }
 
-  // Parse SMS and add transaction
-  Future<Map<String, dynamic>> parseSms(String smsText, {bool useLocal = false}) async {
+  // Parse SMS and add transaction with smart filtering
+  Future<Map<String, dynamic>> parseSms(String smsText, {bool useLocal = false, String? senderName}) async {
     _isLoading = true;
     _error = null;
     // Don't notify listeners immediately to avoid build phase conflicts
     
     try {
+      // First, analyze the SMS to check if it's a valid transaction
+      final recentSmsTexts = _transactions.take(10).map((t) => t.smsText).toList();
+      final analysis = SMSFilterService.analyzeWithContext(
+        smsText,
+        senderName: senderName,
+        timestamp: DateTime.now(),
+        recentTransactions: recentSmsTexts,
+      );
+
+      debugPrint('SMS Analysis: $analysis');
+
+      // If it's not a valid transaction, return early with explanation
+      if (!analysis.isValidTransaction) {
+        final response = {
+          'success': false,
+          'filtered': true,
+          'filter_reason': analysis.filterReason.description,
+          'confidence': analysis.confidence,
+          'message': 'SMS filtered out: ${analysis.filterReason.description}',
+          'detected_keywords': analysis.detectedKeywords,
+        };
+        
+        debugPrint('SMS filtered out: ${analysis.filterReason.description}');
+        return response;
+      }
+
+      // If confidence is very low, add a warning but still process
+      if (analysis.confidence < 0.4) {
+        debugPrint('Low confidence SMS (${(analysis.confidence * 100).toStringAsFixed(1)}%) - processing with caution');
+      }
 
       final response = await apiService.parseSms(smsText, useLocal: useLocal);
       
@@ -152,6 +186,13 @@ class TransactionProvider with ChangeNotifier {
         );
         // Do not save again; backend parse endpoint already persisted it
         _transactions.insert(0, transaction);
+        
+        // Add analysis metadata to response
+        response['sms_analysis'] = {
+          'filter_confidence': analysis.confidence,
+          'filter_reason': analysis.filterReason.description,
+          'detected_keywords': analysis.detectedKeywords,
+        };
       }
       
       return response;
@@ -284,5 +325,92 @@ class TransactionProvider with ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  // Enhanced duplicate detection method
+  bool _isTransactionDuplicate(Transaction newTransaction) {
+    return _transactions.any((existing) {
+      // Check for exact ID match first
+      if (existing.id == newTransaction.id && 
+          existing.id != null && 
+          existing.id!.isNotEmpty) {
+        return true;
+      }
+
+      // Check for same amount and vendor
+      if (existing.amount == newTransaction.amount &&
+          existing.vendor.toLowerCase() == newTransaction.vendor.toLowerCase()) {
+        
+        try {
+          // Parse dates for time comparison
+          final existingDate = existing.parsedDate;
+          final newDate = newTransaction.parsedDate;
+          
+          // Check if dates are within 1 minute of each other
+          final timeDifference = existingDate.difference(newDate).abs();
+          if (timeDifference.inMinutes <= 1) {
+            return true;
+          }
+          
+          // Also check if they're on the same day (fallback for date-only transactions)
+          if (existingDate.year == newDate.year &&
+              existingDate.month == newDate.month &&
+              existingDate.day == newDate.day) {
+            return true;
+          }
+        } catch (e) {
+          // If date parsing fails, fall back to string comparison
+          debugPrint('Date parsing failed in duplicate detection: $e');
+          if (existing.date.substring(0, 10) == newTransaction.date.substring(0, 10)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    });
+  }
+
+  // Method to remove duplicate transactions from existing list
+  void removeDuplicateTransactions() {
+    final uniqueTransactions = <Transaction>[];
+    final seenTransactions = <String, Transaction>{};
+
+    for (final transaction in _transactions) {
+      final key = '${transaction.amount}_${transaction.vendor.toLowerCase()}_${transaction.date.substring(0, 10)}';
+      
+      if (!seenTransactions.containsKey(key)) {
+        seenTransactions[key] = transaction;
+        uniqueTransactions.add(transaction);
+      } else {
+        // Check if this transaction has a more complete date/time
+        final existing = seenTransactions[key]!;
+        try {
+          final existingDate = existing.parsedDate;
+          final currentDate = transaction.parsedDate;
+          
+          // Keep the one with more recent or complete information
+          if (currentDate.isAfter(existingDate) || 
+              (transaction.upiTransactionId != null && existing.upiTransactionId == null)) {
+            seenTransactions[key] = transaction;
+            final index = uniqueTransactions.indexOf(existing);
+            if (index != -1) {
+              uniqueTransactions[index] = transaction;
+            }
+          }
+        } catch (e) {
+          // Keep the first one if date parsing fails
+          debugPrint('Date comparison failed in duplicate removal: $e');
+        }
+      }
+    }
+
+    final removedCount = _transactions.length - uniqueTransactions.length;
+    if (removedCount > 0) {
+      _transactions.clear();
+      _transactions.addAll(uniqueTransactions);
+      notifyListeners();
+      debugPrint('Removed $removedCount duplicate transactions');
+    }
   }
 }

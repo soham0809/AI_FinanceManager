@@ -75,7 +75,36 @@ class Transaction {
   }
 
   DateTime get parsedDate {
-    return DateTime.parse(date);
+    try {
+      // Handle various date formats
+      if (date.contains('-')) {
+        // Handle formats like '15-Oct-25', '2025-10-15', etc.
+        final parts = date.split('-');
+        if (parts.length == 3) {
+          // Check if it's in DD-MMM-YY format
+          if (parts[1].length == 3) {
+            // Convert '15-Oct-25' to proper format
+            final monthMap = {
+              'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+              'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+              'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+            };
+            final day = parts[0].padLeft(2, '0');
+            final month = monthMap[parts[1]] ?? '01';
+            final year = '20${parts[2]}'; // Assume 20XX for YY format
+            final isoDate = '$year-$month-$day';
+            return DateTime.parse(isoDate);
+          }
+        }
+      }
+      
+      // Try parsing as-is (ISO format)
+      return DateTime.parse(date);
+    } catch (e) {
+      // Fallback to current date if parsing fails
+      print('Date parsing failed for: $date, using current date');
+      return DateTime.now();
+    }
   }
 
   Transaction copyWith({

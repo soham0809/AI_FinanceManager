@@ -58,13 +58,23 @@ class TransactionController:
                 'date': date_str,
                 'transaction_type': transaction_type,
                 'category': category,
-                'transaction_id': parsed_result.get('upi_transaction_id')
+                'transaction_id': parsed_result.get('upi_transaction_id'),
+                'sms_text': sms_text  # Include SMS text for better duplicate detection
             }
             
             # Check for duplicates
             duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
             if duplicate_result['is_duplicate']:
                 raise ValueError(f"Duplicate transaction: {duplicate_result['reason']}")
+            
+            # Also check database for existing SMS text
+            from app.models.transaction import Transaction
+            existing = db.query(Transaction).filter(
+                Transaction.sms_text == sms_text,
+                Transaction.user_id == user_id
+            ).first()
+            if existing:
+                raise ValueError(f"SMS already processed for this user")
             
             # Create transaction with enhanced data
             transaction = self.create_enhanced_transaction(
@@ -144,6 +154,30 @@ class TransactionController:
             category = parsed.get('category', 'Others')
             date_str = parsed.get('date') or datetime.now().strftime('%Y-%m-%d')
             confidence = float(parsed.get('confidence', 0.8))
+            
+            # Check for duplicates in local parsing too
+            duplicate_check_data = {
+                'vendor': vendor,
+                'amount': amount,
+                'date': date_str,
+                'transaction_type': 'debit',  # Default for local parsing
+                'category': category,
+                'sms_text': sms_text
+            }
+            
+            duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
+            if duplicate_result['is_duplicate']:
+                raise HTTPException(status_code=409, detail=f"Duplicate transaction: {duplicate_result['reason']}")
+            
+            # Also check database for existing SMS text
+            from app.models.transaction import Transaction
+            existing = db.query(Transaction).filter(
+                Transaction.sms_text == sms_text,
+                Transaction.user_id == user_id
+            ).first()
+            if existing:
+                raise HTTPException(status_code=409, detail="SMS already processed for this user")
+            
             transaction = self.create_transaction(
                 db=db,
                 vendor=vendor,
@@ -154,6 +188,10 @@ class TransactionController:
                 confidence=confidence,
                 user_id=user_id
             )
+            
+            # Add to deduplicator for future checks
+            self.deduplicator.add_transaction(duplicate_check_data)
+            
             return {
                 'success': True,
                 'transaction': transaction,
@@ -369,9 +407,9 @@ class TransactionController:
             )
         )
         
-        # User filtering disabled for backward compatibility
-        # if user_id:
-        #     search_query = search_query.filter(Transaction.user_id == user_id)
+        # Enable user filtering for proper isolation
+        if user_id is not None:
+            search_query = search_query.filter(Transaction.user_id == user_id)
         
         return search_query.order_by(Transaction.date.desc()).limit(limit).all()
     

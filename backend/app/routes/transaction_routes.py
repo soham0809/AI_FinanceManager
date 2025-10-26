@@ -124,12 +124,12 @@ async def get_transactions(
     return [
         TransactionResponse(
             id=t.id,
-            vendor=t.vendor,
-            amount=t.amount,
-            date=t.date,
-            category=t.category,
-            sms_text=t.sms_text,
-            confidence=t.confidence
+            vendor=t.vendor or "Unknown",
+            amount=t.amount or 0.0,
+            date=t.date or "",
+            category=t.category or "Others",
+            sms_text=t.sms_text or "",
+            confidence=t.confidence or 0.0
         )
         for t in transactions
     ]
@@ -146,12 +146,12 @@ async def get_transactions_public(
     return [
         TransactionResponse(
             id=t.id,
-            vendor=t.vendor,
-            amount=t.amount,
-            date=t.date,
-            category=t.category,
-            sms_text=t.sms_text,
-            confidence=t.confidence
+            vendor=t.vendor or "Unknown",
+            amount=t.amount or 0.0,
+            date=t.date or "",
+            category=t.category or "Others",
+            sms_text=t.sms_text or "",
+            confidence=t.confidence or 0.0
         )
         for t in transactions
     ]
@@ -273,12 +273,12 @@ async def search_transactions(
     return [
         TransactionResponse(
             id=t.id,
-            vendor=t.vendor,
-            amount=t.amount,
-            date=t.date,
-            category=t.category,
-            sms_text=t.sms_text,
-            confidence=t.confidence
+            vendor=t.vendor or "Unknown",
+            amount=t.amount or 0.0,
+            date=t.date or "",
+            category=t.category or "Others",
+            sms_text=t.sms_text or "",
+            confidence=t.confidence or 0.0
         )
         for t in transactions
     ]

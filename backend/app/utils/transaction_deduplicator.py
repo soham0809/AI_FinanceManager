@@ -34,31 +34,58 @@ class TransactionDeduplicator:
         """Check for similar transactions within time window"""
         current_amount = transaction_data.get('amount', 0)
         current_vendor = transaction_data.get('vendor', '').lower()
-        current_date_str = transaction_data.get('date', '')
+        current_timestamp = datetime.now()
         
-        try:
-            current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
-        except (ValueError, TypeError):
-            current_date = datetime.now()
+        # Also get SMS text for better matching
+        current_sms = transaction_data.get('sms_text', '').lower()
         
-        # Check for similar transactions within 1 hour
-        time_window = timedelta(hours=1)
+        # Check for similar transactions within 1 minute (as requested)
+        time_window = timedelta(minutes=1)
         
         for recent_tx in self.recent_transactions:
             recent_amount = recent_tx.get('amount', 0)
             recent_vendor = recent_tx.get('vendor', '').lower()
-            recent_date_str = recent_tx.get('date', '')
+            recent_sms = recent_tx.get('sms_text', '').lower()
             
             try:
-                recent_date = datetime.strptime(recent_date_str, '%Y-%m-%d')
+                # Use the timestamp when transaction was processed
+                recent_timestamp = datetime.fromisoformat(recent_tx.get('timestamp', ''))
             except (ValueError, TypeError):
                 continue
             
-            # Check if amounts match and vendors are similar
-            if (abs(current_amount - recent_amount) < 0.01 and 
-                current_vendor == recent_vendor and
-                abs((current_date - recent_date).total_seconds()) < time_window.total_seconds()):
-                return recent_tx
+            # Check for duplicates based on multiple criteria:
+            # 1. Same amount (exact match)
+            # 2. Same vendor (case-insensitive)
+            # 3. Similar SMS text (70% similarity) OR exact vendor match
+            # 4. Within 1-minute time window
+            
+            amount_match = abs(current_amount - recent_amount) < 0.01
+            vendor_match = current_vendor == recent_vendor
+            
+            # Calculate SMS similarity (simple approach)
+            sms_similarity = 0.0
+            if current_sms and recent_sms:
+                common_words = set(current_sms.split()) & set(recent_sms.split())
+                total_words = len(set(current_sms.split()) | set(recent_sms.split()))
+                if total_words > 0:
+                    sms_similarity = len(common_words) / total_words
+            
+            time_diff = abs((current_timestamp - recent_timestamp).total_seconds())
+            time_match = time_diff < time_window.total_seconds()
+            
+            # Consider it a duplicate if:
+            # - Amounts match AND vendors match AND within time window
+            # - OR amounts match AND SMS similarity > 70% AND within time window
+            is_duplicate = (
+                (amount_match and vendor_match and time_match) or
+                (amount_match and sms_similarity > 0.7 and time_match)
+            )
+            
+            if is_duplicate:
+                return {
+                    **recent_tx,
+                    'duplicate_reason': f'Amount: {amount_match}, Vendor: {vendor_match}, SMS: {sms_similarity:.2f}, Time: {time_diff:.0f}s'
+                }
         
         return None
     
@@ -109,6 +136,7 @@ class TransactionDeduplicator:
             'date': transaction_data.get('date'),
             'transaction_type': transaction_data.get('transaction_type'),
             'transaction_id': transaction_data.get('transaction_id'),
+            'sms_text': transaction_data.get('sms_text'),
             'hash': transaction_hash,
             'timestamp': datetime.now().isoformat()
         }

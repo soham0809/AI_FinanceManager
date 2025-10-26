@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/transaction_provider.dart';
 import '../models/transaction.dart';
+import '../services/api_service.dart';
 
 class SimpleAnalyticsDashboard extends StatefulWidget {
   const SimpleAnalyticsDashboard({Key? key}) : super(key: key);
@@ -18,6 +19,12 @@ class _SimpleAnalyticsDashboardState extends State<SimpleAnalyticsDashboard> {
   double _totalSpent = 0;
   double _totalEarned = 0;
   int _transactionCount = 0;
+  
+  // Monthly and Weekly data
+  List<Map<String, dynamic>> _monthlyData = [];
+  List<Map<String, dynamic>> _weeklyData = [];
+  bool _hasMonthlyData = false;
+  bool _hasWeeklyData = false;
 
   @override
   void initState() {
@@ -41,6 +48,9 @@ class _SimpleAnalyticsDashboardState extends State<SimpleAnalyticsDashboard> {
       if (provider.transactions.isNotEmpty) {
         _calculateAnalytics(provider.transactions);
       }
+
+      // Load monthly and weekly data if authenticated
+      await _loadMonthlyWeeklyData();
 
       if (mounted) {
         setState(() {
@@ -95,6 +105,42 @@ class _SimpleAnalyticsDashboardState extends State<SimpleAnalyticsDashboard> {
     _vendorSpending = Map.fromEntries(sortedVendors.take(5));
   }
 
+  Future<void> _loadMonthlyWeeklyData() async {
+    try {
+      final apiService = ApiService();
+      
+      // Load monthly data
+      try {
+        final monthlyResponse = await apiService.getMonthlySpending(months: 6);
+        if (monthlyResponse['success'] == true && monthlyResponse['data'] != null) {
+          _monthlyData = List<Map<String, dynamic>>.from(
+            monthlyResponse['data']['monthly_spending'] ?? []
+          );
+          _hasMonthlyData = true;
+        }
+      } catch (e) {
+        print('Monthly data load failed: $e');
+        _hasMonthlyData = false;
+      }
+
+      // Load weekly data
+      try {
+        final weeklyResponse = await apiService.getWeeklySpending(weeks: 8);
+        if (weeklyResponse['success'] == true && weeklyResponse['data'] != null) {
+          _weeklyData = List<Map<String, dynamic>>.from(
+            weeklyResponse['data']['weekly_spending'] ?? []
+          );
+          _hasWeeklyData = true;
+        }
+      } catch (e) {
+        print('Weekly data load failed: $e');
+        _hasWeeklyData = false;
+      }
+    } catch (e) {
+      print('Error loading monthly/weekly data: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -126,6 +172,18 @@ class _SimpleAnalyticsDashboardState extends State<SimpleAnalyticsDashboard> {
           // Payment Methods
           _buildPaymentMethodSection(),
           const SizedBox(height: 24),
+          
+          // Monthly Trends Section
+          if (_hasMonthlyData) ...[
+            _buildMonthlySection(),
+            const SizedBox(height: 24),
+          ],
+          
+          // Weekly Trends Section  
+          if (_hasWeeklyData) ...[
+            _buildWeeklySection(),
+            const SizedBox(height: 24),
+          ],
           
           // AI Insights
           _buildInsightsSection(),
@@ -407,6 +465,165 @@ class _SimpleAnalyticsDashboardState extends State<SimpleAnalyticsDashboard> {
                 ),
               )),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonthlySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.calendar_month, color: Colors.blue, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Monthly Trends',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _monthlyData.length,
+            itemBuilder: (context, index) {
+              final monthData = _monthlyData[index];
+              return Container(
+                width: 140,
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      monthData['month_name'] ?? 'Unknown',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Spent: ₹${(monthData['total_spent'] ?? 0).toStringAsFixed(0)}',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      'Transactions: ${monthData['transaction_count'] ?? 0}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Avg: ₹${monthData['transaction_count'] != null && monthData['transaction_count'] > 0 ? ((monthData['total_spent'] ?? 0) / monthData['transaction_count']).toStringAsFixed(0) : '0'}',
+                      style: TextStyle(
+                        color: Colors.blue[700],
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeeklySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.date_range, color: Colors.green, size: 20),
+            const SizedBox(width: 8),
+            const Text(
+              'Weekly Trends',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _weeklyData.length,
+            itemBuilder: (context, index) {
+              final weekData = _weeklyData[index];
+              return Container(
+                width: 140,
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Week ${weekData['week_number'] ?? 'Unknown'}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      weekData['week_period'] ?? '',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Spent: ₹${(weekData['total_spent'] ?? 0).toStringAsFixed(0)}',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      'Transactions: ${weekData['transaction_count'] ?? 0}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Avg: ₹${weekData['transaction_count'] != null && weekData['transaction_count'] > 0 ? ((weekData['total_spent'] ?? 0) / weekData['transaction_count']).toStringAsFixed(0) : '0'}',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],
