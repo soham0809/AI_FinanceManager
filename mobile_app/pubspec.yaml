@@ -1,0 +1,76 @@
+name: student_finance_copilot
+description: AI-powered financial co-pilot for students with zero-touch expense tracking
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP requests
+  http: ^1.2.0
+  
+  # SMS and permissions
+  permission_handler: ^11.3.0
+  
+  # State management
+  provider: ^6.1.2
+  
+  # UI components
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.2.1
+  
+  # Charts and visualization
+  fl_chart: ^0.66.2
+  
+  # Local storage
+  shared_preferences: ^2.2.2
+  
+  # Date handling
+  intl: ^0.19.0
+  
+  # JSON serialization
+  json_annotation: ^4.8.1
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  json_serializable: ^6.7.1
+  build_runner: ^2.4.7
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  image_path: assets/app_icon.jpeg
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: assets/app_icon.jpeg
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
+  windows:
+    generate: true
+    image_path: assets/app_icon.jpeg
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: assets/app_icon.jpeg
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/app_icon.jpeg
+  
+  # fonts:
+    # - family: Roboto
+      # fonts:
+        # - asset: fonts/Roboto-Regular.ttf
+        # - asset: fonts/Roboto-Bold.ttf
+          # weight: 700
