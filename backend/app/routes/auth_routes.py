@@ -8,7 +8,7 @@ from app.controllers.auth_controller import AuthController
 from app.auth.dependencies import get_current_active_user
 from app.models.user import User
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix="/v1/auth", tags=["authentication"])
 
 # Pydantic models
 class UserCreate(BaseModel):

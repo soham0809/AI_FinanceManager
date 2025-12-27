@@ -78,102 +78,76 @@ class ApiService {
       };
     }
     
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to parse SMS messages.');
+    }
+    
     try {
       // Decide endpoint based on parsing mode
-      final String authedPath = useLocal ? '/v1/parse-sms-local' : '/v1/parse-sms';
-      final String publicPath = useLocal ? '/v1/parse-sms-local-public' : '/v1/parse-sms-public';
+      final String endpoint = useLocal ? '/v1/parse-sms-local' : '/v1/parse-sms';
 
-      // Try authenticated endpoint first if user is logged in
-      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
-        print('🔐 Using ${useLocal ? 'LOCAL' : 'LLM'} authenticated SMS parsing endpoint');
-        final response = await http.post(
-          Uri.parse('$baseUrl$authedPath'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AuthService.accessToken}',
-          },
-          body: json.encode({'sms_text': smsText}),
-        ).timeout(Duration(seconds: 60));
-        
-        if (response.statusCode == 200) {
-          print('✅ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing successful');
-          return json.decode(response.body);
-        } else if (response.statusCode == 401) {
-          // Token expired, try to refresh
-          await AuthService.refreshToken();
-          // Retry with new token
-          return await parseSms(smsText, useLocal: useLocal);
-        }
-        print('⚠️ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing failed: ${response.statusCode}, falling back to public');
-      }
-      
-      // Fallback to public endpoint
-      print('⚠️ Using ${useLocal ? 'LOCAL' : 'LLM'} public SMS parsing endpoint');
+      print('🔐 Using ${useLocal ? 'LOCAL' : 'LLM'} authenticated SMS parsing endpoint');
       final response = await http.post(
-        Uri.parse('$baseUrl$publicPath'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
         body: json.encode({'sms_text': smsText}),
       ).timeout(Duration(seconds: 60));
-
+      
       if (response.statusCode == 200) {
+        print('✅ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing successful');
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        // Token expired, try to refresh
+        await AuthService.refreshToken();
+        // Retry with new token
+        return await parseSms(smsText, useLocal: useLocal);
       } else {
-        print('Error response body: ${response.body}'); // Add this line
+        print('Error response body: ${response.body}');
         throw Exception('Failed to parse SMS: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error in parseSms: $e'); // Add this line
+      print('Network error in parseSms: $e');
       throw Exception('Network error: $e');
     }
   }
 
   // Get all transactions (user-specific if authenticated)
   Future<List<Transaction>> getTransactions() async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to view transactions.');
+    }
+    
     try {
-      // Try authenticated endpoint first
-      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
-        final response = await http.get(
-          Uri.parse('$baseUrl/v1/transactions'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AuthService.accessToken}',
-          },
-        );
-        print('✅ getTransactions (authenticated) response status: ${response.statusCode}');
-        
-        if (response.statusCode == 200) {
-          final List<dynamic> transactionsJson = json.decode(response.body);
-          print('✅ Successfully parsed ${transactionsJson.length} user-specific transactions');
-          
-          return transactionsJson
-              .map((json) => Transaction.fromJson(json))
-              .toList();
-        } else if (response.statusCode == 401) {
-          // Token expired, try to refresh
-          print('🔄 Token expired, refreshing...');
-          await AuthService.refreshToken();
-          // Retry with new token
-          return await getTransactions();
-        } else {
-          print('❌ Authenticated endpoint failed: ${response.statusCode}');
-          print('❌ Error body: ${response.body}');
-        }
-      }
-      
-      // Fallback to public endpoint (shows all transactions - not ideal)
-      print('⚠️ Using public endpoint - transactions not user-isolated');
-      final response = await http.get(Uri.parse('$baseUrl/v1/transactions-public'));
-      print('✅ getTransactions (public) response status: ${response.statusCode}');
+      final response = await http.get(
+        Uri.parse('$baseUrl/v1/transactions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+      );
+      print('✅ getTransactions response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final List<dynamic> transactionsJson = json.decode(response.body);
-        print('✅ Successfully parsed ${transactionsJson.length} transactions (all users)');
+        print('✅ Successfully parsed ${transactionsJson.length} user-specific transactions');
         
         return transactionsJson
             .map((json) => Transaction.fromJson(json))
             .toList();
+      } else if (response.statusCode == 401) {
+        // Token expired, try to refresh
+        print('🔄 Token expired, refreshing...');
+        await AuthService.refreshToken();
+        // Retry with new token
+        return await getTransactions();
       } else {
-        print('❌ Error response body: ${response.body}');
+        print('❌ Error response: ${response.statusCode}');
+        print('❌ Error body: ${response.body}');
         throw Exception('Failed to load transactions: ${response.statusCode}');
       }
     } catch (e) {
@@ -212,60 +186,47 @@ class ApiService {
 
   // Save a transaction to the backend
   Future<Map<String, dynamic>> saveTransaction(Transaction transaction) async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to save transactions.');
+    }
+    
     try {
-      // Prefer authenticated endpoint for proper user isolation
-      if (AuthService.isLoggedIn && AuthService.accessToken != null) {
-        final headers = {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${AuthService.accessToken}',
-        };
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${AuthService.accessToken}',
+      };
 
-        final authResponse = await http.post(
-          Uri.parse('$baseUrl/v1/transactions'),
-          headers: headers,
-          body: json.encode(transaction.toJson()),
-        );
-
-        if (authResponse.statusCode == 200 || authResponse.statusCode == 201) {
-          return json.decode(authResponse.body);
-        } else if (authResponse.statusCode == 401) {
-          // Try refresh token once
-          await AuthService.refreshToken();
-          final retryHeaders = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${AuthService.accessToken}',
-          };
-          final retryResponse = await http.post(
-            Uri.parse('$baseUrl/v1/transactions'),
-            headers: retryHeaders,
-            body: json.encode(transaction.toJson()),
-          );
-          if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
-            return json.decode(retryResponse.body);
-          }
-          print('❌ Authenticated save failed after refresh: ${retryResponse.statusCode}');
-          print('❌ Error body: ${retryResponse.body}');
-        } else {
-          print('❌ Authenticated save failed: ${authResponse.statusCode}');
-          print('❌ Error body: ${authResponse.body}');
-        }
-      }
-
-      // Fallback to public endpoint (not user-isolated)
-      final publicResponse = await http.post(
-        Uri.parse('$baseUrl/v1/transactions-public'),
-        headers: {'Content-Type': 'application/json'},
+      final response = await http.post(
+        Uri.parse('$baseUrl/v1/transactions'),
+        headers: headers,
         body: json.encode(transaction.toJson()),
       );
 
-      if (publicResponse.statusCode == 200 || publicResponse.statusCode == 201) {
-        return json.decode(publicResponse.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        // Try refresh token once
+        await AuthService.refreshToken();
+        final retryResponse = await http.post(
+          Uri.parse('$baseUrl/v1/transactions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${AuthService.accessToken}',
+          },
+          body: json.encode(transaction.toJson()),
+        );
+        if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+          return json.decode(retryResponse.body);
+        }
+        print('❌ Authenticated save failed after refresh: ${retryResponse.statusCode}');
+        throw Exception('Failed to save transaction after refresh: ${retryResponse.statusCode}');
       } else {
-        print('Error response body: ${publicResponse.body}'); // Add this line
-        throw Exception('Failed to save transaction: ${publicResponse.statusCode}');
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to save transaction: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error in saveTransaction: $e'); // Add this line
+      print('Network error in saveTransaction: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -293,10 +254,15 @@ class ApiService {
     });
 
     final String path = useLocal ? '/v1/quick/parse-sms-batch-local' : '/v1/quick/parse-sms-batch';
+    
+    print('🔐 Starting batch SMS parsing...');
+    print('📍 URL: $baseUrl$path');
+    print('📊 Total SMS: ${smsTexts.length}, Batch size: $batchSize, Delay: ${delaySeconds}s');
+    print('🔧 Mode: ${useLocal ? "LOCAL" : "LLM"}');
 
     final resp = await http
         .post(Uri.parse('$baseUrl$path'), headers: headers, body: body)
-        .timeout(Duration(seconds: 30));
+        .timeout(Duration(seconds: 90));
 
     if (resp.statusCode == 200) {
       return json.decode(resp.body) as Map<String, dynamic>;
@@ -413,59 +379,91 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getMonthlyTrends() async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to view analytics.');
+    }
+    
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/monthly-trends-public'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/analytics/monthly-trends'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await getMonthlyTrends();
       } else {
-        print('Error response body: ${response.body}'); // Add this line
+        print('Error response body: ${response.body}');
         throw Exception('Failed to get monthly trends: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error: $e'); // Add this line
+      print('Network error: $e');
       throw Exception('Network error: $e');
     }
   }
 
   Future<Map<String, dynamic>> getSpendingInsights() async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to view analytics.');
+    }
+    
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/insights-public'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/analytics/insights'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await getSpendingInsights();
       } else {
-        print('Error response body: ${response.body}'); // Add this line
-        throw Exception(
-            'Failed to get spending insights: ${response.statusCode}');
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to get spending insights: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error: $e'); // Add this line
+      print('Network error: $e');
       throw Exception('Network error: $e');
     }
   }
 
   Future<Map<String, dynamic>> getTopVendors({int limit = 10}) async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to view analytics.');
+    }
+    
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/analytics/top-vendors-public?limit=$limit'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/analytics/top-vendors?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await getTopVendors(limit: limit);
       } else {
-        print('Error response body: ${response.body}'); // Add this line
+        print('Error response body: ${response.body}');
         throw Exception('Failed to get top vendors: ${response.statusCode}');
       }
     } catch (e) {
-      print('Network error: $e'); // Add this line
+      print('Network error: $e');
       throw Exception('Network error: $e');
     }
   }
@@ -657,10 +655,18 @@ class ApiService {
 
   // Chatbot endpoints
   Future<Map<String, dynamic>> queryChatbot(String query, {int limit = 100}) async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to use chatbot.');
+    }
+    
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/chatbot/query-public'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/chatbot/query'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
         body: json.encode({
           'query': query,
           'limit': limit,
@@ -669,6 +675,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await queryChatbot(query, limit: limit);
       } else {
         print('Error response body: ${response.body}');
         throw Exception('Failed to get chatbot response: ${response.statusCode}');
@@ -680,14 +689,25 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getQuickInsights() async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to use chatbot.');
+    }
+    
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/v1/chatbot/quick-insights-public'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/chatbot/quick-insights'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await getQuickInsights();
       } else {
         print('Error response body: ${response.body}');
         throw Exception('Failed to get quick insights: ${response.statusCode}');
@@ -699,14 +719,25 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> getFinancialSummary({int days = 30}) async {
+    // Require authentication
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to use chatbot.');
+    }
+    
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/v1/chatbot/summary-public?days=$days'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('$baseUrl/v1/chatbot/summary?days=$days'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
       );
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await getFinancialSummary(days: days);
       } else {
         print('Error response body: ${response.body}');
         throw Exception('Failed to get financial summary: ${response.statusCode}');

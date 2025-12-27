@@ -36,7 +36,7 @@ async def get_ollama_response(prompt: str) -> str:
         print(f"🤖 Sending request to Ollama at {settings.OLLAMA_HOST}")
         
         payload = {
-            "model": "llama3.1:latest",
+            "model": "mistral:7b-instruct-q4_K_M",
             "prompt": prompt,
             "stream": False
         }
@@ -109,7 +109,7 @@ Keep under 100 words. Use ₹ for currency.
             "transaction_count": len(transactions),
             "query": query,
             "source": "ai_model",  # Indicates response from AI model
-            "source_description": "Ollama AI (llama3.1:latest)"
+            "source_description": "Ollama AI (mistral:7b-instruct-q4_K_M)"
         }
     except:
         # Fallback to simple response
@@ -178,7 +178,7 @@ async def get_ollama_response_fast(prompt: str) -> str:
         print(f"🤖 Sending fast request to Ollama")
         
         payload = {
-            "model": "llama3.1:latest",
+            "model": "mistral:7b-instruct-q4_K_M",
             "prompt": prompt,
             "stream": False
         }

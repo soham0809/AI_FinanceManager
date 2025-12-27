@@ -77,7 +77,7 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
       // Kick off background batch job
       final startResp = await provider.apiService.startParseSmsBatch(
         smsMessages,
-        batchSize: 12,
+        batchSize: 10,  // Process 10 messages at a time for optimal speed
         delaySeconds: 2,
         useLocal: _useLocalBatch,
       );

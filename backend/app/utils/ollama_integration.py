@@ -65,7 +65,7 @@ class OllamaAssistant:
             
             # Prepare API request payload
             payload = {
-                "model": "llama3.1:latest",  # Using the model you mentioned
+                "model": "mistral:7b-instruct-q4_K_M",  # Using the model you mentioned
                 "prompt": prompt,
                 "stream": False,
                 "format": "json"
@@ -193,7 +193,7 @@ class OllamaAssistant:
             """
             
             payload = {
-                "model": "llama3.1:latest",
+                "model": "mistral:7b-instruct-q4_K_M",
                 "prompt": prompt,
                 "stream": False,
                 "format": "json"
@@ -227,12 +227,12 @@ class OllamaAssistant:
             print(f"Spending analysis error: {e}")
             return {'success': False, 'error': str(e)}
     
-    async def generate_response(self, prompt: str, model: str = "llama3.1:latest") -> Dict[str, Any]:
+    async def generate_response(self, prompt: str, model: str = "mistral:7b-instruct-q4_K_M") -> Dict[str, Any]:
         """Generate a general response using Ollama LLM
         
         Args:
             prompt: The prompt to send to the LLM
-            model: The model to use (default: llama3.1:latest)
+            model: The model to use (default: mistral:7b-instruct-q4_K_M)
             
         Returns:
             Dict containing the response or error

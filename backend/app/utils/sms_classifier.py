@@ -112,7 +112,7 @@ async def get_ollama_response(prompt: str) -> Dict[str, Any]:
     """Get structured response from Ollama AI"""
     try:
         payload = {
-            "model": "llama3.1:latest",
+            "model": "mistral:7b-instruct-q4_K_M",
             "prompt": prompt,
             "stream": False,
             "format": "json"

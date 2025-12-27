@@ -259,26 +259,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-
-                        // Demo/Guest access
-                        TextButton(
-                          onPressed: () {
-                            // Navigate to main navigation without authentication (using public endpoints)
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (context) => const MainNavigation(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Continue as Guest',
-                            style: TextStyle(
-                              color: Color(0xFF888888),
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),

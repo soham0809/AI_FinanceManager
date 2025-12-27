@@ -84,37 +84,11 @@ async def parse_sms_local(
         confidence=transaction.confidence
     )
 
-@router.post("/parse-sms-public", response_model=TransactionResponse)
-async def parse_sms_public(request: SMSRequest, db: Session = Depends(get_db)):
-    """Parse SMS without authentication (for backward compatibility)"""
-    result = await transaction_controller.parse_sms(db, request.sms_text)
-    transaction = result['transaction']
-    
-    return TransactionResponse(
-        id=transaction.id,
-        vendor=transaction.vendor,
-        amount=transaction.amount,
-        date=_date_to_str(transaction.date),
-        category=transaction.category,
-        sms_text=transaction.sms_text,
-        confidence=transaction.confidence
-    )
+# Public parse-sms endpoints removed - use /parse-sms with authentication
 
-@router.post("/parse-sms-local-public", response_model=TransactionResponse)
-async def parse_sms_local_public(request: SMSRequest, db: Session = Depends(get_db)):
-    """Parse SMS quickly using local regex-based parser without authentication"""
-    result = transaction_controller.parse_sms_local_quick(db, request.sms_text, user_id=None)
-    transaction = result['transaction']
-    
-    return TransactionResponse(
-        id=transaction.id,
-        vendor=transaction.vendor,
-        amount=transaction.amount,
-        date=_date_to_str(transaction.date),
-        category=transaction.category,
-        sms_text=transaction.sms_text,
-        confidence=transaction.confidence
-    )
+
+
+
 
 @router.get("/transactions", response_model=List[TransactionResponse])
 async def get_transactions(
@@ -139,27 +113,9 @@ async def get_transactions(
         for t in transactions
     ]
 
-@router.get("/transactions-public", response_model=List[TransactionResponse])
-async def get_transactions_public(
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
-):
-    """Get all transactions (for backward compatibility)"""
-    transactions = transaction_controller.get_transactions(db, None, limit, offset)
-    
-    return [
-        TransactionResponse(
-            id=t.id,
-            vendor=t.vendor or "Unknown",
-            amount=t.amount or 0.0,
-            date=_date_to_str(t.date),
-            category=t.category or "Others",
-            sms_text=t.sms_text or "",
-            confidence=t.confidence or 0.0
-        )
-        for t in transactions
-    ]
+
+# /transactions-public removed - use /transactions with authentication
+
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(
@@ -208,31 +164,9 @@ async def create_transaction(
         confidence=transaction.confidence
     )
 
-@router.post("/transactions-public", response_model=TransactionResponse)
-async def create_transaction_public(
-    transaction_data: TransactionCreate,
-    db: Session = Depends(get_db)
-):
-    """Create new transaction manually (backward compatibility)"""
-    transaction = transaction_controller.create_transaction(
-        db=db,
-        vendor=transaction_data.vendor,
-        amount=transaction_data.amount,
-        date=transaction_data.date,
-        category=transaction_data.category,
-        sms_text=transaction_data.sms_text,
-        confidence=transaction_data.confidence
-    )
-    
-    return TransactionResponse(
-        id=transaction.id,
-        vendor=transaction.vendor,
-        amount=transaction.amount,
-        date=_date_to_str(transaction.date),
-        category=transaction.category,
-        sms_text=transaction.sms_text,
-        confidence=transaction.confidence
-    )
+
+# POST /transactions-public removed - use POST /transactions with authentication
+
 
 @router.put("/transactions/{transaction_id}", response_model=TransactionResponse)
 async def update_transaction(
@@ -292,7 +226,7 @@ async def search_transactions(
 async def get_ml_model_info():
     """Get ML model information"""
     return {
-        "model_name": "llama3.1:latest",
+        "model_name": "mistral:7b-instruct-q4_K_M",
         "model_type": "Ollama",
         "status": "active",
         "categories": [

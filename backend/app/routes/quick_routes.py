@@ -291,6 +291,10 @@ async def quick_parse_sms_batch_local(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user)
 ):
+    import time
+    start_time = time.time()
+    print(f"🔧 [BATCH-LOCAL] Request received: {len(request.sms_texts)} SMS, batch_size={request.batch_size}")
+    
     job_id = str(uuid.uuid4())
     processing_results[job_id] = {"status": "queued", "total": len(request.sms_texts), "processed": 0, "success": 0, "failed": 0}
     safe_batch = request.batch_size or 5
@@ -298,6 +302,8 @@ async def quick_parse_sms_batch_local(
         safe_batch = 1
     if safe_batch > 20:
         safe_batch = 20
+    
+    print(f"🔧 [BATCH-LOCAL] Starting background task with batch_size={safe_batch}, job_id={job_id}")
     background_tasks.add_task(
         process_sms_batch_local_async,
         job_id,
@@ -306,6 +312,9 @@ async def quick_parse_sms_batch_local(
         safe_batch,
         request.delay_seconds or 1
     )
+    
+    elapsed = time.time() - start_time
+    print(f"✅ [BATCH-LOCAL] Responding with job_id={job_id} (took {elapsed:.2f}s)")
     return QuickBatchResponse(job_id=job_id, status="queued", message="Local batch parsing started. Poll job status.", total=len(request.sms_texts))
 
 @router.get("/job-status/{job_id}", response_model=JobStatusResponse)

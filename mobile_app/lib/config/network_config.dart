@@ -2,13 +2,14 @@ class NetworkConfig {
   // 🌐 CONFIGURATION MODE
   // Set to true for production (Cloudflare Tunnel)
   // Set to false for local development
-  static const bool useCloudflare = true;
+  static const bool useCloudflare = false;  // ✅ Changed to local mode
   
   // ============================================
   // 🏠 LOCAL DEVELOPMENT CONFIGURATION
   // ============================================
   // Run 'ipconfig' and update this IP address when your network changes
-  static const String localServerIp = '192.168.0.100';
+  // Updated: 2025-12-26 - Set to actual machine IP for physical device testing
+  static const String localServerIp = '192.168.0.102';  // Your development machine's local IP
   static const int localServerPort = 8000;
   
   // ============================================

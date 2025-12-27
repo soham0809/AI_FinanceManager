@@ -104,76 +104,79 @@ class TransactionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                // Category badge
-                if (transaction.category != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      transaction.category!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Category badge
+                  if (transaction.category != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                // Payment method badge
-                if (transaction.paymentMethod != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _getPaymentMethodColor(transaction.paymentMethod!).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      transaction.paymentMethod!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: _getPaymentMethodColor(transaction.paymentMethod!),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                // Subscription badge
-                if (transaction.isSubscription) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.subscriptions,
-                          size: 10,
-                          color: Colors.purple.shade700,
+                      child: Text(
+                        transaction.category!,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
                         ),
-                        const SizedBox(width: 2),
-                        Text(
-                          transaction.subscriptionService ?? 'Subscription',
-                          style: TextStyle(
-                            fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  // Payment method badge
+                  if (transaction.paymentMethod != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getPaymentMethodColor(transaction.paymentMethod!).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        transaction.paymentMethod!,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _getPaymentMethodColor(transaction.paymentMethod!),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  // Subscription badge
+                  if (transaction.isSubscription) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.subscriptions,
+                            size: 10,
                             color: Colors.purple.shade700,
-                            fontWeight: FontWeight.w500,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 2),
+                          Text(
+                            transaction.subscriptionService ?? 'Subscription',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.purple.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ),

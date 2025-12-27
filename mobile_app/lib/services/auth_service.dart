@@ -43,8 +43,12 @@ class AuthService {
     String? fullName,
   }) async {
     try {
+      final url = '$baseUrl/v1/auth/register';
+      print('🔐 Attempting registration at: $url');
+      print('📧 Email: $email, Username: $username');
+      
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -52,7 +56,9 @@ class AuthService {
           'password': password,
           'full_name': fullName,
         }),
-      );
+      ).timeout(Duration(seconds: 15));
+      
+      print('✅ Registration response status: ${response.statusCode}');
 
       final data = jsonDecode(response.body);
 
@@ -69,6 +75,8 @@ class AuthService {
         };
       }
     } catch (e) {
+      print('❌ Registration error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       return {
         'success': false,
         'message': 'Network error: $e',
@@ -82,14 +90,20 @@ class AuthService {
     required String password,
   }) async {
     try {
+      final url = '$baseUrl/v1/auth/login';
+      print('🔐 Attempting login at: $url');
+      print('👤 Username: $username');
+      
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'username': username,
           'password': password,
         },
-      );
+      ).timeout(Duration(seconds: 15));
+      
+      print('✅ Login response status: ${response.statusCode}');
 
       final data = jsonDecode(response.body);
 
@@ -109,6 +123,8 @@ class AuthService {
         };
       }
     } catch (e) {
+      print('❌ Login error: $e');
+      print('❌ Error type: ${e.runtimeType}');
       return {
         'success': false,
         'message': 'Network error: $e',

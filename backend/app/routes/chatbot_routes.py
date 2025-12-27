@@ -122,34 +122,4 @@ async def get_quick_insights(
 
 
 # Public endpoints (no authentication required)
-@router.post("/query-public", response_model=ChatbotResponse)
-async def query_chatbot_public(
-    request: ChatbotQuery,
-    db: Session = Depends(get_db)
-):
-    """
-    Public chatbot endpoint (no authentication required).
-    Query the financial chatbot about transactions.
-    """
-    return await query_chatbot(request, db)
-
-
-@router.get("/summary-public")
-async def get_financial_summary_public(
-    db: Session = Depends(get_db),
-    days: int = Query(30, description="Number of days to analyze")
-):
-    """
-    Public financial summary endpoint (no authentication required).
-    """
-    return await get_financial_summary(db, days)
-
-
-@router.post("/quick-insights-public")
-async def get_quick_insights_public(
-    db: Session = Depends(get_db)
-):
-    """
-    Public quick insights endpoint (no authentication required).
-    """
-    return await get_quick_insights(db)
+# Public chatbot endpoints removed - all endpoints now require authentication
