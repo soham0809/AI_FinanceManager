@@ -8,6 +8,53 @@ class TransactionDeduplicator:
         self.recent_transactions: List[Dict[str, Any]] = []
         self.max_history = 1000  # Keep last 1000 transactions for duplicate checking
     
+    def generate_fingerprint(
+        self, 
+        sender: str, 
+        sms_text: str, 
+        device_timestamp: int
+    ) -> str:
+        """
+        Create unique fingerprint for SMS using sender + timestamp + normalized text.
+        This is FAST and happens BEFORE any LLM call.
+        
+        Args:
+            sender: SMS sender address (e.g., "AD-HDFCBK")
+            sms_text: SMS body text
+            device_timestamp: Milliseconds since epoch when SMS was received
+            
+        Returns:
+            MD5 hash string (32 chars)
+        """
+        # Normalize text: lowercase, remove extra whitespace, limit to 100 chars
+        clean_text = ' '.join(sms_text.lower().split())[:100]
+        
+        # Create unique string combining all identifiers
+        unique_string = f"{sender or 'unknown'}_{device_timestamp}_{clean_text}"
+        
+        # MD5 hash (fast, collision-resistant enough for dedup)
+        return hashlib.md5(unique_string.encode()).hexdigest()
+    
+    def is_duplicate_by_fingerprint(self, fingerprint: str, db_session) -> bool:
+        """
+        Check if fingerprint exists in database.
+        This is a fast indexed query - O(log n).
+        
+        Args:
+            fingerprint: MD5 hash to check
+            db_session: SQLAlchemy session
+            
+        Returns:
+            True if duplicate exists
+        """
+        from app.models.transaction import Transaction
+        
+        exists = db_session.query(Transaction).filter(
+            Transaction.fingerprint == fingerprint
+        ).first()
+        
+        return exists is not None
+    
     def generate_transaction_hash(self, transaction_data: Dict[str, Any]) -> str:
         """Generate hash for transaction based on key fields"""
         hash_string = f"{transaction_data.get('vendor', '')}-{transaction_data.get('amount', 0)}-{transaction_data.get('date', '')}"

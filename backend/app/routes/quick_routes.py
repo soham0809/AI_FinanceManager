@@ -18,10 +18,19 @@ processing_results: Dict[str, Any] = {}
 class SMSRequest(BaseModel):
     sms_text: str
 
+# NEW: SMS message with metadata for fingerprint-based deduplication
+class SMSMessageWithMetadata(BaseModel):
+    sms_text: str
+    sender: Optional[str] = None
+    device_timestamp: Optional[int] = None
+
 class SMSBatchRequest(BaseModel):
-    sms_texts: List[str]
-    batch_size: Optional[int] = 3
-    delay_seconds: Optional[int] = 8
+    # Legacy: list of SMS text strings
+    sms_texts: Optional[List[str]] = None
+    # NEW: list of SMS messages with metadata (sender, timestamp)
+    sms_messages: Optional[List[SMSMessageWithMetadata]] = None
+    batch_size: Optional[int] = 10
+    delay_seconds: Optional[int] = 3
 
 class QuickResponse(BaseModel):
     job_id: str
@@ -114,18 +123,31 @@ async def quick_parse_sms_local(
     processing_results[job_id] = {"status": "processing"}
     return QuickResponse(job_id=job_id, status="processing", message="Local SMS parsing started. Check status with job_id.")
 
-async def process_sms_batch_async(job_id: str, sms_texts: List[str], user_id: int, batch_size: int, delay_seconds: int):
-    processing_results[job_id] = {"status": "running", "total": len(sms_texts), "processed": 0, "success": 0, "failed": 0, "items": []}
+async def process_sms_batch_async(job_id: str, sms_items: List[Dict[str, Any]], user_id: int, batch_size: int, delay_seconds: int):
+    """Process SMS batch with optional metadata for fingerprint deduplication"""
+    processing_results[job_id] = {"status": "running", "total": len(sms_items), "processed": 0, "success": 0, "failed": 0, "items": []}
     processed = 0
     success = 0
     failed = 0
     items: List[Dict[str, Any]] = []
 
     # Helper: process a single SMS with its own DB session
-    async def _process_one(sms_text: str) -> Dict[str, Any]:
+    async def _process_one(sms_item: Dict[str, Any]) -> Dict[str, Any]:
         db = SessionLocal()
         try:
-            result = await transaction_controller.parse_sms(db, sms_text, user_id=user_id)
+            # Extract metadata if available
+            sms_text = sms_item.get('sms_text') or sms_item.get('text') or str(sms_item)
+            sender = sms_item.get('sender')
+            device_timestamp = sms_item.get('device_timestamp')
+            
+            # Pass metadata to controller for fingerprint dedup
+            result = await transaction_controller.parse_sms(
+                db, 
+                sms_text, 
+                user_id=user_id,
+                sender=sender,
+                device_timestamp=device_timestamp
+            )
             t = result['transaction']
             return {
                 "ok": True,
@@ -140,12 +162,12 @@ async def process_sms_batch_async(job_id: str, sms_texts: List[str], user_id: in
             db.close()
 
     try:
-        n = len(sms_texts)
+        n = len(sms_items)
         i = 0
         while i < n:
-            chunk = sms_texts[i:i + max(1, batch_size)]
+            chunk = sms_items[i:i + max(1, batch_size)]
             # Process this chunk concurrently
-            results = await asyncio.gather(*[ _process_one(txt) for txt in chunk ], return_exceptions=False)
+            results = await asyncio.gather(*[_process_one(item) for item in chunk], return_exceptions=False)
 
             for r in results:
                 if r.get("ok"):
@@ -186,17 +208,30 @@ async def process_sms_batch_async(job_id: str, sms_texts: List[str], user_id: in
     except Exception as e:
         processing_results[job_id] = {"status": "failed", "error": str(e), "processed": processed, "success": success, "failed": failed}
 
-async def process_sms_batch_local_async(job_id: str, sms_texts: List[str], user_id: int, batch_size: int, delay_seconds: int):
-    processing_results[job_id] = {"status": "running", "total": len(sms_texts), "processed": 0, "success": 0, "failed": 0, "items": []}
+async def process_sms_batch_local_async(job_id: str, sms_items: List[Dict[str, Any]], user_id: int, batch_size: int, delay_seconds: int):
+    """Process SMS batch locally with optional metadata for fingerprint deduplication"""
+    processing_results[job_id] = {"status": "running", "total": len(sms_items), "processed": 0, "success": 0, "failed": 0, "items": []}
     processed = 0
     success = 0
     failed = 0
     items: List[Dict[str, Any]] = []
 
-    def _process_one_sync(sms_text: str) -> Dict[str, Any]:
+    def _process_one_sync(sms_item: Dict[str, Any]) -> Dict[str, Any]:
         db = SessionLocal()
         try:
-            result = transaction_controller.parse_sms_local_quick(db, sms_text, user_id=user_id)
+            # Extract metadata if available
+            sms_text = sms_item.get('sms_text') or sms_item.get('text') or str(sms_item)
+            sender = sms_item.get('sender')
+            device_timestamp = sms_item.get('device_timestamp')
+            
+            # Pass metadata to controller for fingerprint dedup
+            result = transaction_controller.parse_sms_local_quick(
+                db, 
+                sms_text, 
+                user_id=user_id,
+                sender=sender,
+                device_timestamp=device_timestamp
+            )
             t = result['transaction']
             return {
                 "ok": True,
@@ -211,16 +246,14 @@ async def process_sms_batch_local_async(job_id: str, sms_texts: List[str], user_
             db.close()
 
     try:
-        n = len(sms_texts)
+        n = len(sms_items)
         i = 0
         while i < n:
-            chunk = sms_texts[i:i + max(1, batch_size)]
-            # Process this chunk concurrently using thread pool executor (Python 3.8 compatible)
-            results: List[Dict[str, Any]] = []
+            chunk = sms_items[i:i + max(1, batch_size)]
+            # OPTIMIZED: Process entire chunk in parallel using gather
             loop = asyncio.get_running_loop()
-            for txt in chunk:
-                r = await loop.run_in_executor(None, _process_one_sync, txt)
-                results.append(r)
+            tasks = [loop.run_in_executor(None, _process_one_sync, item) for item in chunk]
+            results = await asyncio.gather(*tasks)
 
             for r in results:
                 if r.get("ok"):
@@ -267,23 +300,34 @@ async def quick_parse_sms_batch(
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user)
 ):
+    # Convert to unified format - support both sms_texts (legacy) and sms_messages (new)
+    if request.sms_messages:
+        # NEW: sms_messages with metadata
+        sms_items = [{"sms_text": m.sms_text, "sender": m.sender, "device_timestamp": m.device_timestamp} for m in request.sms_messages]
+    elif request.sms_texts:
+        # LEGACY: plain text strings
+        sms_items = [{"sms_text": txt} for txt in request.sms_texts]
+    else:
+        sms_items = []
+    
     job_id = str(uuid.uuid4())
-    processing_results[job_id] = {"status": "queued", "total": len(request.sms_texts), "processed": 0, "success": 0, "failed": 0}
-    # Sanitize batch size to 1..5 (ultra-conservative for 100 SMS)
-    safe_batch = request.batch_size or 3
+    processing_results[job_id] = {"status": "queued", "total": len(sms_items), "processed": 0, "success": 0, "failed": 0}
+    
+    safe_batch = request.batch_size or 5
     if safe_batch < 1:
         safe_batch = 1
-    if safe_batch > 5:
-        safe_batch = 5
+    if safe_batch > 10:
+        safe_batch = 10
+        
     background_tasks.add_task(
         process_sms_batch_async,
         job_id,
-        request.sms_texts,
+        sms_items,  # Now passing dict items with metadata
         current_user.id,
         safe_batch,
-        request.delay_seconds or 8
+        request.delay_seconds if request.delay_seconds is not None else 2
     )
-    return QuickBatchResponse(job_id=job_id, status="queued", message="Batch parsing started. Poll job status.", total=len(request.sms_texts))
+    return QuickBatchResponse(job_id=job_id, status="queued", message="Batch parsing started. Poll job status.", total=len(sms_items))
 
 @router.post("/parse-sms-batch-local", response_model=QuickBatchResponse)
 async def quick_parse_sms_batch_local(
@@ -293,29 +337,43 @@ async def quick_parse_sms_batch_local(
 ):
     import time
     start_time = time.time()
-    print(f"🔧 [BATCH-LOCAL] Request received: {len(request.sms_texts)} SMS, batch_size={request.batch_size}")
+    
+    # Convert to unified format - support both sms_texts (legacy) and sms_messages (new)
+    if request.sms_messages:
+        # NEW: sms_messages with metadata for fingerprint dedup
+        sms_items = [{"sms_text": m.sms_text, "sender": m.sender, "device_timestamp": m.device_timestamp} for m in request.sms_messages]
+        print(f"🔧 [BATCH-LOCAL] Using NEW metadata format: {len(sms_items)} SMS with sender/timestamp")
+    elif request.sms_texts:
+        # LEGACY: plain text strings
+        sms_items = [{"sms_text": txt} for txt in request.sms_texts]
+        print(f"🔧 [BATCH-LOCAL] Using LEGACY format: {len(sms_items)} SMS (text only)")
+    else:
+        sms_items = []
+    
+    print(f"🔧 [BATCH-LOCAL] Request received: {len(sms_items)} SMS, batch_size={request.batch_size}")
     
     job_id = str(uuid.uuid4())
-    processing_results[job_id] = {"status": "queued", "total": len(request.sms_texts), "processed": 0, "success": 0, "failed": 0}
-    safe_batch = request.batch_size or 5
+    processing_results[job_id] = {"status": "queued", "total": len(sms_items), "processed": 0, "success": 0, "failed": 0}
+    
+    safe_batch = request.batch_size or 20
     if safe_batch < 1:
         safe_batch = 1
-    if safe_batch > 20:
-        safe_batch = 20
+    if safe_batch > 50:
+        safe_batch = 50
     
     print(f"🔧 [BATCH-LOCAL] Starting background task with batch_size={safe_batch}, job_id={job_id}")
     background_tasks.add_task(
         process_sms_batch_local_async,
         job_id,
-        request.sms_texts,
+        sms_items,  # Now passing dict items with metadata
         current_user.id,
         safe_batch,
-        request.delay_seconds or 1
+        request.delay_seconds if request.delay_seconds is not None else 0
     )
     
     elapsed = time.time() - start_time
     print(f"✅ [BATCH-LOCAL] Responding with job_id={job_id} (took {elapsed:.2f}s)")
-    return QuickBatchResponse(job_id=job_id, status="queued", message="Local batch parsing started. Poll job status.", total=len(request.sms_texts))
+    return QuickBatchResponse(job_id=job_id, status="queued", message="Local batch parsing started. Poll job status.", total=len(sms_items))
 
 @router.get("/job-status/{job_id}", response_model=JobStatusResponse)
 async def get_job_status(job_id: str):

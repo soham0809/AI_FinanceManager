@@ -6,6 +6,39 @@ import 'mock_sms_service.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart'; // Import the uuid package
 
+/// Structured SMS message with metadata for temporal-context aware parsing
+class SMSMessage {
+  final String body;
+  final String sender;
+  final int deviceTimestamp; // Milliseconds since epoch
+
+  SMSMessage({
+    required this.body,
+    required this.sender,
+    required this.deviceTimestamp,
+  });
+
+  /// Convert to JSON for API request
+  Map<String, dynamic> toJson() => {
+    'sms_text': body,
+    'sender': sender,
+    'device_timestamp': deviceTimestamp,
+  };
+  
+  /// Parse from formatted string: "FROM: address | DATE: timestamp | BODY: message"
+  factory SMSMessage.fromFormattedString(String formattedSms) {
+    final fromMatch = RegExp(r'FROM: (.+?) \|').firstMatch(formattedSms);
+    final dateMatch = RegExp(r'DATE: (\d+) \|').firstMatch(formattedSms);
+    final bodyMatch = RegExp(r'BODY: (.+)$', dotAll: true).firstMatch(formattedSms);
+    
+    return SMSMessage(
+      sender: fromMatch?.group(1) ?? 'Unknown',
+      deviceTimestamp: int.tryParse(dateMatch?.group(1) ?? '0') ?? DateTime.now().millisecondsSinceEpoch,
+      body: bodyMatch?.group(1) ?? formattedSms,
+    );
+  }
+}
+
 class SMSService {
   static final SMSService _instance = SMSService._internal();
   factory SMSService() => _instance;
@@ -84,7 +117,7 @@ class SMSService {
       
       debugPrint('Raw SMS messages received: ${smsMessages.length}');
       
-      // Extract just the message body from formatted SMS
+      // Parse to structured SMSMessage objects (preserving metadata)
       final transactionSMS = smsMessages.map((formattedSms) {
         final bodyIndex = formattedSms.indexOf('BODY: ');
         if (bodyIndex != -1) {
@@ -109,26 +142,89 @@ class SMSService {
     }
   }
   
-  // Parse SMS and send to backend
-  Future<Transaction?> parseSMSToTransaction(String smsText) async {
+  /// NEW: Get transaction SMS with full metadata (sender, timestamp, body)
+  /// This is the preferred method for temporal-context aware parsing
+  Future<List<SMSMessage>> getTransactionSMSWithMetadata({int limit = 100}) async {
     try {
-      final response = await _apiService.parseSms(smsText);
+      debugPrint('Starting SMS scan with metadata - checking permissions...');
+      
+      if (!await hasPermissions()) {
+        final granted = await requestPermissions();
+        if (!granted) {
+          debugPrint('SMS permissions denied');
+          // Return mock data as SMSMessage objects
+          return MockSmsService.getMockSmsMessages(count: limit)
+              .map((body) => SMSMessage(
+                    body: body,
+                    sender: 'MOCK-SENDER',
+                    deviceTimestamp: DateTime.now().millisecondsSinceEpoch,
+                  ))
+              .toList();
+        }
+      }
+      
+      debugPrint('Calling platform channel for SMS with metadata...');
+      final Map<String, dynamic> arguments = {'limit': limit};
+      final List<dynamic> messages = await _channel.invokeMethod('getTransactionSMS', arguments);
+      
+      // Parse formatted strings to structured SMSMessage objects
+      final List<SMSMessage> smsWithMetadata = messages
+          .cast<String>()
+          .map((formatted) => SMSMessage.fromFormattedString(formatted))
+          .toList();
+      
+      debugPrint('✅ SUCCESS: Got ${smsWithMetadata.length} SMS with metadata');
+      
+      // Log first few for debugging
+      for (int i = 0; i < smsWithMetadata.length && i < 2; i++) {
+        final sms = smsWithMetadata[i];
+        debugPrint('SMS $i: sender=${sms.sender}, timestamp=${sms.deviceTimestamp}, body=${sms.body.substring(0, sms.body.length > 50 ? 50 : sms.body.length)}...');
+      }
+      
+      return smsWithMetadata;
+    } catch (e) {
+      debugPrint('❌ ERROR getting SMS with metadata: $e');
+      // Fallback to mock data
+      return MockSmsService.getMockSmsMessages(count: limit)
+          .map((body) => SMSMessage(
+                body: body,
+                sender: 'MOCK-SENDER',
+                deviceTimestamp: DateTime.now().millisecondsSinceEpoch,
+              ))
+          .toList();
+    }
+  }
+  
+  // Parse SMS and send to backend (legacy - body only)
+  Future<Transaction?> parseSMSToTransaction(String smsText) async {
+    return parseSMSMessageToTransaction(SMSMessage(
+      body: smsText,
+      sender: 'unknown',
+      deviceTimestamp: DateTime.now().millisecondsSinceEpoch,
+    ));
+  }
+  
+  /// NEW: Parse SMS with full metadata for temporal-context aware parsing
+  Future<Transaction?> parseSMSMessageToTransaction(SMSMessage sms) async {
+    try {
+      // Use the new API method that sends metadata
+      final response = await _apiService.parseSmsWithMetadata(sms);
       
       if (response['success'] == true) {
         return Transaction(
-          id: _uuid.v4(), // Add unique ID
+          id: _uuid.v4(),
           vendor: response['vendor'],
           amount: response['amount'].toDouble(),
           date: response['date'],
           category: response['category'],
-          smsText: smsText,  // Updated field name
+          smsText: sms.body,
           confidence: response['confidence']?.toDouble() ?? 0.0,
         );
       }
       
       return null;
     } catch (e) {
-      debugPrint('Error parsing SMS: $e');
+      debugPrint('Error parsing SMS with metadata: $e');
       return null;
     }
   }

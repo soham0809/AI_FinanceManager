@@ -54,31 +54,31 @@ class _AutoSMSScannerState extends State<AutoSMSScanner> {
     setState(() {
       _isScanning = true;
       _foundTransactions = 0;
-      _scanStatus = 'Reading SMS messages...';
+      _scanStatus = 'Reading SMS messages with metadata...';
     });
 
     try {
-      debugPrint('📱 Getting transaction SMS from device...');
+      debugPrint('📱 Getting transaction SMS with metadata from device...');
       
-      // Get SMS messages directly from SMS service
-      final smsMessages = await _smsService.getTransactionSMS(limit: 100);
+      // NEW: Get SMS with full metadata (sender, timestamp, body)
+      final smsWithMetadata = await _smsService.getTransactionSMSWithMetadata(limit: 100);
       
-      debugPrint('📨 Found ${smsMessages.length} SMS messages');
+      debugPrint('📨 Found ${smsWithMetadata.length} SMS messages with metadata');
       
       setState(() {
-        _foundTransactions = smsMessages.length;
-        _scanStatus = 'Found ${smsMessages.length} transaction SMS!';
+        _foundTransactions = smsWithMetadata.length;
+        _scanStatus = 'Found ${smsWithMetadata.length} transaction SMS!';
       });
 
-      // Use server-side LLM batch parsing with progress polling
+      // Use server-side batch parsing with progress polling
       final provider = context.read<TransactionProvider>();
       setState(() => _scanStatus = _useLocalBatch ? 'Starting LOCAL batch parsing on server...' : 'Starting LLM batch parsing on server...');
 
-      // Kick off background batch job
-      final startResp = await provider.apiService.startParseSmsBatch(
-        smsMessages,
-        batchSize: 10,  // Process 10 messages at a time for optimal speed
-        delaySeconds: 2,
+      // NEW: Kick off background batch job WITH METADATA for fingerprint dedup
+      final startResp = await provider.apiService.startParseSmsBatchWithMetadata(
+        smsWithMetadata,
+        batchSize: 10,  // Process 10 messages at a time
+        delaySeconds: 3,  // 3 second delay between batches
         useLocal: _useLocalBatch,
       );
       final String jobId = startResp['job_id'];

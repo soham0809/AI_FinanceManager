@@ -75,7 +75,7 @@ class OllamaAssistant:
             response = requests.post(
                 f"{self.host}/api/generate",
                 json=payload,
-                timeout=120  # 2 minute timeout for first request
+                timeout=180  # 3 minute timeout for LLM parsing
             )
             
             # Check response status
@@ -202,7 +202,7 @@ class OllamaAssistant:
             response = requests.post(
                 f"{self.host}/api/generate",
                 json=payload,
-                timeout=60  # Longer timeout for analysis
+                timeout=120  # 2 minute timeout for analysis
             )
             
             if response.status_code != 200:
@@ -247,7 +247,7 @@ class OllamaAssistant:
             response = requests.post(
                 f"{self.host}/api/generate",
                 json=payload,
-                timeout=60
+                timeout=120  # 2 minute timeout for general responses
             )
             
             if response.status_code != 200:

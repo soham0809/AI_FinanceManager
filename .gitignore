@@ -6,27 +6,41 @@
 *.key
 *.crt
 
-
 # Database Files
 *.db
 *.sqlite
 *.sqlite3
-financial_copilot.db
-backend/financial_copilot.db
 
 # Python Cache
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 venv/
 env/
 .venv/
+
+# Testing & Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+coverage.json
+*.cover
+.pytest_cache/
+test_results.xml
+
+# Model/Pickle Files
+*.pkl
 
 # Flutter Build
 mobile_app/build/
 mobile_app/.dart_tool/
 mobile_app/.packages
 mobile_app/.pub-cache/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.metadata
 
 # Logs
 *.log
@@ -45,3 +59,5 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+*.swp
+*.swo

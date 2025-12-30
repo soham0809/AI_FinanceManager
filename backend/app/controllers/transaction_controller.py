@@ -18,9 +18,32 @@ class TransactionController:
         self.deduplicator = TransactionDeduplicator()
         self.intelligent_filter = IntelligentSMSFilter()
     
-    async def parse_sms(self, db: Session, sms_text: str, user_id: Optional[int] = None) -> Dict[str, Any]:
-        """Parse SMS and create transaction using intelligent filtering and advanced classification"""
+    async def parse_sms(
+        self, 
+        db: Session, 
+        sms_text: str, 
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
+        device_timestamp: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Parse SMS with temporal-context aware deduplication and LLM parsing"""
         try:
+            # STEP 0: FAST fingerprint check BEFORE any expensive processing
+            fingerprint = None
+            device_datetime = None
+            
+            if sender and device_timestamp:
+                fingerprint = self.deduplicator.generate_fingerprint(
+                    sender, sms_text, device_timestamp
+                )
+                
+                # Fast indexed DB query - O(log n)
+                if self.deduplicator.is_duplicate_by_fingerprint(fingerprint, db):
+                    raise ValueError("Duplicate SMS (fingerprint match)")
+                
+                # Convert device timestamp to datetime for date fallback
+                device_datetime = datetime.fromtimestamp(device_timestamp / 1000.0)
+            
             # STEP 1: Intelligent pre-filtering to identify real transactions
             sms_type, confidence, reason = self.intelligent_filter.classify_sms(sms_text)
             
@@ -28,7 +51,7 @@ class TransactionController:
             if sms_type != SMSType.REAL_TRANSACTION or confidence < 0.6:
                 raise ValueError(f"SMS filtered out: {sms_type.value} (confidence: {confidence:.2f}) - {reason}")
             
-            # STEP 2: Use advanced SMS classification and parsing for real transactions
+            # STEP 2: Use advanced SMS classification and parsing
             parsed_result = await classify_and_parse_sms(sms_text)
             
             if parsed_result.get('success') is False:
@@ -38,45 +61,47 @@ class TransactionController:
             vendor = parsed_result.get('vendor', 'Unknown')
             amount = float(parsed_result.get('amount', 0))
             transaction_type = parsed_result.get('transaction_type', 'debit')
-            # Map merchant_category to category for backward compatibility
             category = parsed_result.get('merchant_category', parsed_result.get('category', 'Others'))
             confidence = float(parsed_result.get('confidence', 0.0))
             
-            # Format date properly if provided
+            # STEP 3: Use device timestamp as fallback if no date in SMS
             date_str = parsed_result.get('date')
             if not date_str or date_str == 'null':
-                date_str = datetime.now().strftime('%Y-%m-%d')
+                if device_datetime:
+                    date_str = device_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    date_str = datetime.now().strftime('%Y-%m-%d')
             
             # Apply confidence threshold filtering
             if confidence < 0.7:
                 raise ValueError(f"Low confidence transaction ({confidence:.2f})")
             
-            # Prepare transaction data for duplicate detection
-            duplicate_check_data = {
-                'vendor': vendor,
-                'amount': amount,
-                'date': date_str,
-                'transaction_type': transaction_type,
-                'category': category,
-                'transaction_id': parsed_result.get('upi_transaction_id'),
-                'sms_text': sms_text  # Include SMS text for better duplicate detection
-            }
+            # Legacy dedup check (fallback if no fingerprint)
+            if not fingerprint:
+                duplicate_check_data = {
+                    'vendor': vendor,
+                    'amount': amount,
+                    'date': date_str,
+                    'transaction_type': transaction_type,
+                    'category': category,
+                    'transaction_id': parsed_result.get('upi_transaction_id'),
+                    'sms_text': sms_text
+                }
+                
+                duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
+                if duplicate_result['is_duplicate']:
+                    raise ValueError(f"Duplicate transaction: {duplicate_result['reason']}")
+                
+                # Also check database for existing SMS text
+                from app.models.transaction import Transaction
+                existing = db.query(Transaction).filter(
+                    Transaction.sms_text == sms_text,
+                    Transaction.user_id == user_id
+                ).first()
+                if existing:
+                    raise ValueError("SMS already processed for this user")
             
-            # Check for duplicates
-            duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
-            if duplicate_result['is_duplicate']:
-                raise ValueError(f"Duplicate transaction: {duplicate_result['reason']}")
-            
-            # Also check database for existing SMS text
-            from app.models.transaction import Transaction
-            existing = db.query(Transaction).filter(
-                Transaction.sms_text == sms_text,
-                Transaction.user_id == user_id
-            ).first()
-            if existing:
-                raise ValueError(f"SMS already processed for this user")
-            
-            # Create transaction with enhanced data
+            # Create transaction with fingerprint and temporal data
             transaction = self.create_enhanced_transaction(
                 db=db,
                 vendor=vendor,
@@ -86,11 +111,17 @@ class TransactionController:
                 sms_text=sms_text,
                 confidence=confidence,
                 parsed_data=parsed_result,
-                user_id=user_id
+                user_id=user_id,
+                fingerprint=fingerprint,
+                device_received_at=device_datetime,
+                sender_address=sender
             )
             
-            # Add to deduplicator
-            self.deduplicator.add_transaction(duplicate_check_data)
+            # Add to in-memory deduplicator
+            self.deduplicator.add_transaction({
+                'vendor': vendor, 'amount': amount, 'date': date_str,
+                'transaction_type': transaction_type, 'sms_text': sms_text
+            })
             
             return {
                 'success': True,
@@ -142,46 +173,72 @@ class TransactionController:
         self,
         db: Session,
         sms_text: str,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        sender: Optional[str] = None,
+        device_timestamp: Optional[int] = None
     ) -> Dict[str, Any]:
-        """Fast local-only SMS parse using regex-based SMSParser; no LLM"""
+        """Fast local-only SMS parse with fingerprint deduplication; no LLM"""
         try:
+            # STEP 0: FAST fingerprint check BEFORE any processing
+            fingerprint = None
+            device_datetime = None
+            
+            if sender and device_timestamp:
+                fingerprint = self.deduplicator.generate_fingerprint(
+                    sender, sms_text, device_timestamp
+                )
+                
+                # Fast indexed DB query - O(log n), ~10ms vs 2-5s LLM
+                if self.deduplicator.is_duplicate_by_fingerprint(fingerprint, db):
+                    raise HTTPException(
+                        status_code=409, 
+                        detail="Duplicate SMS (fingerprint match)"
+                    )
+                
+                # Convert device timestamp to datetime
+                device_datetime = datetime.fromtimestamp(device_timestamp / 1000.0)
+            
+            # STEP 1: Parse SMS using regex
             parsed = self.sms_parser.parse_transaction(sms_text)
             if not parsed.get('success'):
                 raise HTTPException(status_code=400, detail=parsed.get('error', 'Failed to parse SMS'))
+            
             vendor = parsed.get('vendor', 'Unknown')
             amount = float(parsed.get('amount', 0) or 0)
             category = parsed.get('category', 'Others')
-            date_str = parsed.get('date') or datetime.now().strftime('%Y-%m-%d')
             confidence = float(parsed.get('confidence', 0.8))
-            
-            # Check for duplicates in local parsing too
-            # Determine transaction type from parsed data
             transaction_type = parsed.get('transaction_type', 'debit')
-
-            duplicate_check_data = {
-                'vendor': vendor,
-                'amount': amount,
-                'date': date_str,
-                'transaction_type': transaction_type,
-                'category': category,
-                'sms_text': sms_text
-            }
             
-            duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
-            if duplicate_result['is_duplicate']:
-                raise HTTPException(status_code=409, detail=f"Duplicate transaction: {duplicate_result['reason']}")
+            # STEP 2: Use device timestamp as fallback if no date in SMS
+            date_str = parsed.get('date')
+            if not date_str:
+                if device_datetime:
+                    date_str = device_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    date_str = datetime.now().strftime('%Y-%m-%d')
             
-            # Also check database for existing SMS text
-            from app.models.transaction import Transaction
-            existing = db.query(Transaction).filter(
-                Transaction.sms_text == sms_text,
-                Transaction.user_id == user_id
-            ).first()
-            if existing:
-                raise HTTPException(status_code=409, detail="SMS already processed for this user")
+            # Legacy dedup check (fallback if no fingerprint)
+            if not fingerprint:
+                duplicate_check_data = {
+                    'vendor': vendor, 'amount': amount, 'date': date_str,
+                    'transaction_type': transaction_type, 'category': category,
+                    'sms_text': sms_text
+                }
+                
+                duplicate_result = self.deduplicator.is_duplicate(duplicate_check_data)
+                if duplicate_result['is_duplicate']:
+                    raise HTTPException(status_code=409, detail=f"Duplicate transaction: {duplicate_result['reason']}")
+                
+                # Check database for existing SMS text
+                from app.models.transaction import Transaction
+                existing = db.query(Transaction).filter(
+                    Transaction.sms_text == sms_text,
+                    Transaction.user_id == user_id
+                ).first()
+                if existing:
+                    raise HTTPException(status_code=409, detail="SMS already processed for this user")
             
-            # Create using enhanced path so transaction_type and extras are stored
+            # STEP 3: Create transaction with fingerprint and temporal data
             transaction = self.create_enhanced_transaction(
                 db=db,
                 vendor=vendor,
@@ -191,11 +248,17 @@ class TransactionController:
                 sms_text=sms_text,
                 confidence=confidence,
                 parsed_data=parsed,
-                user_id=user_id
+                user_id=user_id,
+                fingerprint=fingerprint,
+                device_received_at=device_datetime,
+                sender_address=sender
             )
             
-            # Add to deduplicator for future checks
-            self.deduplicator.add_transaction(duplicate_check_data)
+            # Add to in-memory deduplicator
+            self.deduplicator.add_transaction({
+                'vendor': vendor, 'amount': amount, 'date': date_str,
+                'transaction_type': transaction_type, 'sms_text': sms_text
+            })
             
             return {
                 'success': True,
@@ -217,9 +280,12 @@ class TransactionController:
         sms_text: str,
         confidence: float = 0.0,
         parsed_data: Dict[str, Any] = None,
-        user_id: Optional[int] = None
+        user_id: Optional[int] = None,
+        fingerprint: Optional[str] = None,
+        device_received_at: Optional[datetime] = None,
+        sender_address: Optional[str] = None
     ) -> Transaction:
-        """Create a new transaction with enhanced classification data"""
+        """Create a new transaction with enhanced classification and temporal data"""
         try:
             # Parse date string to datetime with flexible format handling
             if isinstance(date, str):
@@ -247,7 +313,7 @@ class TransactionController:
             # Get transaction type from parsed_data or default to 'debit'
             transaction_type = parsed_data.get('transaction_type', 'debit') if parsed_data else 'debit'
             
-            # Create transaction with enhanced fields
+            # Create transaction with enhanced fields and temporal data
             transaction = Transaction(
                 vendor=vendor,
                 amount=abs(amount),  # Always store as positive
@@ -257,7 +323,11 @@ class TransactionController:
                 sms_text=sms_text,
                 confidence=confidence,
                 created_at=datetime.now(),
-                user_id=user_id,  # Add user isolation
+                user_id=user_id,  # User isolation
+                # NEW: Temporal-context aware fields
+                fingerprint=fingerprint,  # MD5 hash for fast dedup
+                device_received_at=device_received_at,  # When SMS arrived on device
+                sender_address=sender_address,  # SMS sender ID
                 # Enhanced fields from classification
                 payment_method=parsed_data.get('payment_method') if parsed_data else None,
                 is_subscription=parsed_data.get('is_subscription', False) if parsed_data else False,

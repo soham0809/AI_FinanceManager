@@ -23,6 +23,8 @@ def _date_to_str(d):
 # Pydantic models
 class SMSRequest(BaseModel):
     sms_text: str
+    sender: Optional[str] = None  # SMS sender address (e.g., "AD-HDFCBK")
+    device_timestamp: Optional[int] = None  # Milliseconds since epoch when SMS received
 
 class TransactionResponse(BaseModel):
     id: int = None
@@ -50,8 +52,14 @@ async def parse_sms(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Parse SMS and extract transaction data"""
-    result = await transaction_controller.parse_sms(db, request.sms_text, user_id=current_user.id)
+    """Parse SMS and extract transaction data using LLM"""
+    result = await transaction_controller.parse_sms(
+        db, 
+        request.sms_text, 
+        user_id=current_user.id,
+        sender=request.sender,
+        device_timestamp=request.device_timestamp
+    )
     transaction = result['transaction']
     
     return TransactionResponse(
@@ -70,8 +78,14 @@ async def parse_sms_local(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Parse SMS quickly using local regex-based parser (no LLM)"""
-    result = transaction_controller.parse_sms_local_quick(db, request.sms_text, user_id=current_user.id)
+    """Parse SMS quickly using local regex-based parser (no LLM) with fingerprint deduplication"""
+    result = transaction_controller.parse_sms_local_quick(
+        db, 
+        request.sms_text, 
+        user_id=current_user.id,
+        sender=request.sender,
+        device_timestamp=request.device_timestamp
+    )
     transaction = result['transaction']
     
     return TransactionResponse(

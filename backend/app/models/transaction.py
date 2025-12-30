@@ -1,5 +1,5 @@
 """Transaction model"""
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.config.database import Base
@@ -18,6 +18,11 @@ class Transaction(Base):
     confidence = Column(Float, nullable=True)  # Parsing confidence score
     created_at = Column(DateTime, nullable=True, default=func.now())  # Record creation timestamp
     
+    # NEW: Temporal-Context Aware Parsing fields
+    fingerprint = Column(String(64), unique=True, index=True, nullable=True)  # MD5 hash for fast dedup
+    device_received_at = Column(DateTime, nullable=True)  # When SMS was received on device
+    sender_address = Column(String(100), nullable=True)  # SMS sender (bank ID)
+    
     # Enhanced transaction classification fields
     payment_method = Column(String(50), nullable=True)  # 'UPI', 'Credit Card', 'Debit Card', 'Net Banking', etc.
     is_subscription = Column(Boolean, nullable=True, default=False)
@@ -26,6 +31,11 @@ class Transaction(Base):
     upi_transaction_id = Column(String(255), nullable=True)  # UPI reference number
     merchant_category = Column(String(100), nullable=True)  # Detailed merchant category
     is_recurring = Column(Boolean, nullable=True, default=False)  # Whether this is a recurring payment
+    
+    # Composite index for fingerprint lookup
+    __table_args__ = (
+        Index('idx_fingerprint_user', 'fingerprint', 'user_id'),
+    )
     
     # Relationship disabled for backward compatibility
     # user = relationship("User", back_populates="transactions", lazy="select")

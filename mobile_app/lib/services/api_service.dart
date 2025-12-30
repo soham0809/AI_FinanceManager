@@ -95,7 +95,7 @@ class ApiService {
           'Authorization': 'Bearer ${AuthService.accessToken}',
         },
         body: json.encode({'sms_text': smsText}),
-      ).timeout(Duration(seconds: 60));
+      ).timeout(Duration(seconds: 180));  // 3 minutes for LLM parsing
       
       if (response.statusCode == 200) {
         print('✅ Authenticated ${useLocal ? 'LOCAL' : 'LLM'} SMS parsing successful');
@@ -112,6 +112,52 @@ class ApiService {
     } catch (e) {
       print('Network error in parseSms: $e');
       throw Exception('Network error: $e');
+    }
+  }
+
+  /// NEW: Parse SMS with full metadata for temporal-context aware parsing
+  /// Sends sender address and device timestamp for fingerprint-based deduplication
+  Future<Map<String, dynamic>> parseSmsWithMetadata(dynamic sms, {bool useLocal = true}) async {
+    if (!AuthService.isLoggedIn || AuthService.accessToken == null) {
+      throw Exception('Authentication required. Please log in to parse SMS messages.');
+    }
+    
+    try {
+      final String endpoint = useLocal ? '/v1/parse-sms-local' : '/v1/parse-sms';
+      
+      // Build request body with metadata
+      final Map<String, dynamic> requestBody = sms is Map 
+          ? sms as Map<String, dynamic> 
+          : sms.toJson();
+      
+      print('🔐 Parsing SMS with metadata: sender=${requestBody['sender']}, timestamp=${requestBody['device_timestamp']}');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${AuthService.accessToken}',
+        },
+        body: json.encode(requestBody),
+      ).timeout(Duration(seconds: 180));  // 3 minutes for LLM parsing
+      
+      if (response.statusCode == 200) {
+        print('✅ SMS parsing with metadata successful');
+        return json.decode(response.body);
+      } else if (response.statusCode == 401) {
+        await AuthService.refreshToken();
+        return await parseSmsWithMetadata(sms, useLocal: useLocal);
+      } else if (response.statusCode == 409) {
+        // Duplicate detected by fingerprint
+        print('⚠️ Duplicate SMS detected (fingerprint match)');
+        throw Exception('Duplicate SMS - already processed');
+      } else {
+        print('Error response body: ${response.body}');
+        throw Exception('Failed to parse SMS: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Network error in parseSmsWithMetadata: $e');
+      rethrow;
     }
   }
 
@@ -271,6 +317,63 @@ class ApiService {
     print('❌ startParseSmsBatch failed: ${resp.statusCode}');
     print('❌ Body: ${resp.body}');
     throw Exception('Failed to start batch parsing: ${resp.statusCode}');
+  }
+
+  /// NEW: Batch SMS parsing WITH METADATA for fingerprint-based deduplication
+  /// Sends sender, deviceTimestamp, and body for each SMS
+  Future<Map<String, dynamic>> startParseSmsBatchWithMetadata(
+    List<dynamic> smsMessages, {  // List<SMSMessage> but dynamic for flexibility
+    int batchSize = 10,
+    int delaySeconds = 3,
+    bool useLocal = false,
+  }) async {
+    if (!(AuthService.isLoggedIn && AuthService.accessToken != null)) {
+      throw Exception('Authentication required for batch parsing');
+    }
+
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ${AuthService.accessToken}',
+    };
+
+    // Convert SMSMessage objects to maps with metadata
+    final List<Map<String, dynamic>> smsWithMetadata = smsMessages.map((sms) {
+      if (sms is Map) {
+        return sms as Map<String, dynamic>;
+      }
+      // Assume it has toJson() method (SMSMessage class)
+      return {
+        'sms_text': sms.body,
+        'sender': sms.sender,
+        'device_timestamp': sms.deviceTimestamp,
+      };
+    }).toList();
+
+    final body = json.encode({
+      'sms_messages': smsWithMetadata,  // NEW: Full metadata
+      'batch_size': batchSize,
+      'delay_seconds': delaySeconds,
+    });
+
+    final String path = useLocal ? '/v1/quick/parse-sms-batch-local' : '/v1/quick/parse-sms-batch';
+    
+    print('🔐 Starting batch SMS parsing WITH METADATA...');
+    print('📍 URL: $baseUrl$path');
+    print('📊 Total SMS: ${smsMessages.length}, Batch size: $batchSize, Delay: ${delaySeconds}s');
+    print('🔧 Mode: ${useLocal ? "LOCAL" : "LLM"}');
+    print('📱 Sample metadata: sender=${smsWithMetadata.isNotEmpty ? smsWithMetadata[0]['sender'] : 'N/A'}');
+
+    final resp = await http
+        .post(Uri.parse('$baseUrl$path'), headers: headers, body: body)
+        .timeout(Duration(seconds: 90));
+
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+
+    print('❌ startParseSmsBatchWithMetadata failed: ${resp.statusCode}');
+    print('❌ Body: ${resp.body}');
+    throw Exception('Failed to start batch parsing with metadata: ${resp.statusCode}');
   }
 
   Future<Map<String, dynamic>> getQuickJobStatus(String jobId) async {

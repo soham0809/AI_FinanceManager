@@ -121,7 +121,7 @@ async def get_ollama_response(prompt: str) -> Dict[str, Any]:
         response = requests.post(
             f"{settings.OLLAMA_HOST}/api/generate",
             json=payload,
-            timeout=60
+            timeout=120  # 2 minute timeout for SMS classification
         )
         
         if response.status_code == 200:
