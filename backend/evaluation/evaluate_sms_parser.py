@@ -213,9 +213,12 @@ class SMSParserEvaluator:
             if abs(predicted_amount - expected_amount) < 0.01:
                 exact_matches += 1
                 status = "✓"
-            elif abs(predicted_amount - expected_amount) / expected_amount < 0.01:
+            elif expected_amount > 0 and abs(predicted_amount - expected_amount) / expected_amount < 0.01:
                 close_matches += 1
                 status = "~"
+            elif expected_amount == 0 and predicted_amount == 0:
+                exact_matches += 1
+                status = "✓"
             else:
                 status = "✗"
                 errors.append({

@@ -1,34 +1,34 @@
 # SMS Parsing Evaluation Report
-Generated: 2025-12-30 12:33:27
+Generated: 2025-12-30 13:34:20
 
 ## Dataset Summary
-- **Total Samples**: 93
-- **SMS Types**: UPI, CREDIT_CARD, DEBIT_CARD, SUBSCRIPTION, NET_BANKING, OTHER
-- **Categories**: 9
+- **Total Samples**: 286
+- **SMS Types**: UPI, CREDIT_CARD, DEBIT_CARD, SUBSCRIPTION, NET_BANKING, OTHER, NO_TRANSACTION, BANK_CHARGE
+- **Categories**: 43
 
 ## Results Summary
 
 ### 1. SMS Type Classification
 | Metric | Value |
 |--------|-------|
-| Accuracy | 68.82% |
-| Precision | 77.73% |
-| Recall | 68.82% |
-| F1-Score | 67.73% |
+| Accuracy | 59.09% |
+| Precision | 62.05% |
+| Recall | 59.09% |
+| F1-Score | 55.33% |
 
 ### 2. Category Classification
 | Metric | Value |
 |--------|-------|
-| Accuracy | 34.41% |
-| Precision | 41.15% |
-| Recall | 34.41% |
-| F1-Score | 31.06% |
+| Accuracy | 27.27% |
+| Precision | 30.38% |
+| Recall | 27.27% |
+| F1-Score | 24.57% |
 
 ### 3. Amount Extraction
 | Metric | Value |
 |--------|-------|
-| Exact Match | 98.92% |
-| Close Match (±1%) | 98.92% |
+| Exact Match | 83.57% |
+| Close Match (±1%) | 83.57% |
 
 ### 4. Processing Performance
 - Average Time: 0.02ms per SMS
@@ -42,4 +42,4 @@ Generated: 2025-12-30 12:33:27
 
 ## Conclusion
 The AI Finance Manager demonstrates moderate performance 
-in SMS parsing with an overall type classification accuracy of 68.82%.
+in SMS parsing with an overall type classification accuracy of 59.09%.

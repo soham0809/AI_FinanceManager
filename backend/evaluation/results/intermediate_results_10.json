@@ -1,0 +1,275 @@
+{
+  "samples_processed": 10,
+  "results": {
+    "regex": {
+      "predictions": [
+        {
+          "type": "UPI",
+          "amount": 499.0,
+          "latency_ms": 0.213623046875
+        },
+        {
+          "type": "UPI",
+          "amount": 1250.0,
+          "latency_ms": 0.028371810913085938
+        },
+        {
+          "type": "UPI",
+          "amount": 2500.0,
+          "latency_ms": 0.0457763671875
+        },
+        {
+          "type": "UPI",
+          "amount": 899.0,
+          "latency_ms": 0.015497207641601562
+        },
+        {
+          "type": "UPI",
+          "amount": 350.0,
+          "latency_ms": 0.0152587890625
+        },
+        {
+          "type": "UPI",
+          "amount": 1599.0,
+          "latency_ms": 0.014543533325195312
+        },
+        {
+          "type": "UPI",
+          "amount": 799.0,
+          "latency_ms": 0.01430511474609375
+        },
+        {
+          "type": "UPI",
+          "amount": 2999.0,
+          "latency_ms": 0.018835067749023438
+        },
+        {
+          "type": "UPI",
+          "amount": 450.0,
+          "latency_ms": 0.022411346435546875
+        },
+        {
+          "type": "UPI",
+          "amount": 199.0,
+          "latency_ms": 0.026226043701171875
+        }
+      ],
+      "times": [
+        0.213623046875,
+        0.028371810913085938,
+        0.0457763671875,
+        0.015497207641601562,
+        0.0152587890625,
+        0.014543533325195312,
+        0.01430511474609375,
+        0.018835067749023438,
+        0.022411346435546875,
+        0.026226043701171875
+      ]
+    },
+    "ml": {
+      "predictions": [
+        {
+          "category": "Food & Dining",
+          "latency_ms": 2.288341522216797
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.7402172088623047
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.3997554779052734
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.0821819305419922
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.0671615600585938
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.1258125305175781
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.0781288146972656
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.0688304901123047
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.3740062713623047
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.245260238647461
+        }
+      ],
+      "times": [
+        2.288341522216797,
+        1.7402172088623047,
+        1.3997554779052734,
+        1.0821819305419922,
+        1.0671615600585938,
+        1.1258125305175781,
+        1.0781288146972656,
+        1.0688304901123047,
+        1.3740062713623047,
+        1.245260238647461
+      ]
+    },
+    "llm": {
+      "predictions": [
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 27863.657236099243
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 18526.60346031189
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17148.415088653564
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15771.26932144165
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17512.507677078247
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16663.829565048218
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16291.382312774658
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17681.742668151855
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16277.830123901367
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17467.06199645996
+        }
+      ],
+      "times": [
+        27863.657236099243,
+        18526.60346031189,
+        17148.415088653564,
+        15771.26932144165,
+        17512.507677078247,
+        16663.829565048218,
+        16291.382312774658,
+        17681.742668151855,
+        16277.830123901367,
+        17467.06199645996
+      ]
+    },
+    "ground_truth": [
+      {
+        "type": "UPI",
+        "amount": 499.0,
+        "category": "Food & Dining",
+        "vendor": "SWIGGY"
+      },
+      {
+        "type": "UPI",
+        "amount": 1250.0,
+        "category": "Food & Dining",
+        "vendor": "ZOMATO"
+      },
+      {
+        "type": "UPI",
+        "amount": 2500.0,
+        "category": "Income",
+        "vendor": "JOHN DOE"
+      },
+      {
+        "type": "UPI",
+        "amount": 899.0,
+        "category": "Shopping",
+        "vendor": "AMAZON"
+      },
+      {
+        "type": "UPI",
+        "amount": 350.0,
+        "category": "Transportation",
+        "vendor": "OLA"
+      },
+      {
+        "type": "UPI",
+        "amount": 1599.0,
+        "category": "Shopping",
+        "vendor": "FLIPKART"
+      },
+      {
+        "type": "UPI",
+        "amount": 799.0,
+        "category": "Transportation",
+        "vendor": "UBER"
+      },
+      {
+        "type": "UPI",
+        "amount": 2999.0,
+        "category": "Shopping",
+        "vendor": "MYNTRA"
+      },
+      {
+        "type": "UPI",
+        "amount": 450.0,
+        "category": "Transportation",
+        "vendor": "RAPIDO"
+      },
+      {
+        "type": "UPI",
+        "amount": 199.0,
+        "category": "Food & Dining",
+        "vendor": "CHAI POINT"
+      }
+    ]
+  }
+}

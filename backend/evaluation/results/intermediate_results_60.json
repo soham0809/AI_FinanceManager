@@ -1,0 +1,1525 @@
+{
+  "samples_processed": 60,
+  "results": {
+    "regex": {
+      "predictions": [
+        {
+          "type": "UPI",
+          "amount": 499.0,
+          "latency_ms": 0.213623046875
+        },
+        {
+          "type": "UPI",
+          "amount": 1250.0,
+          "latency_ms": 0.028371810913085938
+        },
+        {
+          "type": "UPI",
+          "amount": 2500.0,
+          "latency_ms": 0.0457763671875
+        },
+        {
+          "type": "UPI",
+          "amount": 899.0,
+          "latency_ms": 0.015497207641601562
+        },
+        {
+          "type": "UPI",
+          "amount": 350.0,
+          "latency_ms": 0.0152587890625
+        },
+        {
+          "type": "UPI",
+          "amount": 1599.0,
+          "latency_ms": 0.014543533325195312
+        },
+        {
+          "type": "UPI",
+          "amount": 799.0,
+          "latency_ms": 0.01430511474609375
+        },
+        {
+          "type": "UPI",
+          "amount": 2999.0,
+          "latency_ms": 0.018835067749023438
+        },
+        {
+          "type": "UPI",
+          "amount": 450.0,
+          "latency_ms": 0.022411346435546875
+        },
+        {
+          "type": "UPI",
+          "amount": 199.0,
+          "latency_ms": 0.026226043701171875
+        },
+        {
+          "type": "UPI",
+          "amount": 1500.0,
+          "latency_ms": 0.019550323486328125
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 4999.0,
+          "latency_ms": 0.30303001403808594
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 12500.0,
+          "latency_ms": 0.031948089599609375
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 3499.0,
+          "latency_ms": 0.03886222839355469
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 8999.0,
+          "latency_ms": 0.03218650817871094
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 1850.0,
+          "latency_ms": 0.021457672119140625
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 25000.0,
+          "latency_ms": 0.032901763916015625
+        },
+        {
+          "type": "CREDIT_CARD",
+          "amount": 599.0,
+          "latency_ms": 0.022172927856445312
+        },
+        {
+          "type": "DEBIT_CARD",
+          "amount": 2350.0,
+          "latency_ms": 0.34928321838378906
+        },
+        {
+          "type": "DEBIT_CARD",
+          "amount": 890.0,
+          "latency_ms": 0.026702880859375
+        },
+        {
+          "type": "DEBIT_CARD",
+          "amount": 1250.0,
+          "latency_ms": 0.025510787963867188
+        },
+        {
+          "type": "DEBIT_CARD",
+          "amount": 5000.0,
+          "latency_ms": 0.03457069396972656
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 199.0,
+          "latency_ms": 0.05507469177246094
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 119.0,
+          "latency_ms": 0.022172927856445312
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 1499.0,
+          "latency_ms": 0.023365020751953125
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 299.0,
+          "latency_ms": 0.037670135498046875
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 129.0,
+          "latency_ms": 0.024318695068359375
+        },
+        {
+          "type": "OTHER",
+          "amount": 599.0,
+          "latency_ms": 0.0286102294921875
+        },
+        {
+          "type": "OTHER",
+          "amount": 749.0,
+          "latency_ms": 0.05245208740234375
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 1599.0,
+          "latency_ms": 0.023126602172851562
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 15000.0,
+          "latency_ms": 0.027894973754882812
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 5000.0,
+          "latency_ms": 0.04410743713378906
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 50000.0,
+          "latency_ms": 0.023126602172851562
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 2500.0,
+          "latency_ms": 0.09751319885253906
+        },
+        {
+          "type": "UPI",
+          "amount": 500.0,
+          "latency_ms": 0.023126602172851562
+        },
+        {
+          "type": "UPI",
+          "amount": 200.0,
+          "latency_ms": 0.027894973754882812
+        },
+        {
+          "type": "OTHER",
+          "amount": 458.0,
+          "latency_ms": 0.03695487976074219
+        },
+        {
+          "type": "OTHER",
+          "amount": 672.0,
+          "latency_ms": 0.037670135498046875
+        },
+        {
+          "type": "OTHER",
+          "amount": 2499.0,
+          "latency_ms": 0.04076957702636719
+        },
+        {
+          "type": "OTHER",
+          "amount": 1899.0,
+          "latency_ms": 0.05626678466796875
+        },
+        {
+          "type": "OTHER",
+          "amount": 2345.0,
+          "latency_ms": 0.041484832763671875
+        },
+        {
+          "type": "OTHER",
+          "amount": 890.0,
+          "latency_ms": 0.030994415283203125
+        },
+        {
+          "type": "OTHER",
+          "amount": 800.0,
+          "latency_ms": 0.04315376281738281
+        },
+        {
+          "type": "OTHER",
+          "amount": 456.0,
+          "latency_ms": 0.07081031799316406
+        },
+        {
+          "type": "OTHER",
+          "amount": 2150.0,
+          "latency_ms": 0.04267692565917969
+        },
+        {
+          "type": "OTHER",
+          "amount": 5678.0,
+          "latency_ms": 0.07104873657226562
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 12999.0,
+          "latency_ms": 0.023603439331054688
+        },
+        {
+          "type": "SUBSCRIPTION",
+          "amount": 999.0,
+          "latency_ms": 0.04172325134277344
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 123456.78,
+          "latency_ms": 0.050067901611328125
+        },
+        {
+          "type": "UPI",
+          "amount": 999.0,
+          "latency_ms": 0.16379356384277344
+        },
+        {
+          "type": "OTHER",
+          "amount": 50000.0,
+          "latency_ms": 0.04410743713378906
+        },
+        {
+          "type": "UPI",
+          "amount": 1234.56,
+          "latency_ms": 0.028133392333984375
+        },
+        {
+          "type": "UPI",
+          "amount": 567.0,
+          "latency_ms": 0.021457672119140625
+        },
+        {
+          "type": "UPI",
+          "amount": 2345.0,
+          "latency_ms": 0.022649765014648438
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 890.0,
+          "latency_ms": 0.03981590270996094
+        },
+        {
+          "type": "UPI",
+          "amount": 4567.0,
+          "latency_ms": 0.025510787963867188
+        },
+        {
+          "type": "NET_BANKING",
+          "amount": 1234567.89,
+          "latency_ms": 0.041961669921875
+        },
+        {
+          "type": "UPI",
+          "amount": 50000.0,
+          "latency_ms": 0.19669532775878906
+        },
+        {
+          "type": "UPI",
+          "amount": 0.01,
+          "latency_ms": 0.025272369384765625
+        },
+        {
+          "type": "DEBIT_CARD",
+          "amount": 99999.0,
+          "latency_ms": 0.04076957702636719
+        }
+      ],
+      "times": [
+        0.213623046875,
+        0.028371810913085938,
+        0.0457763671875,
+        0.015497207641601562,
+        0.0152587890625,
+        0.014543533325195312,
+        0.01430511474609375,
+        0.018835067749023438,
+        0.022411346435546875,
+        0.026226043701171875,
+        0.019550323486328125,
+        0.30303001403808594,
+        0.031948089599609375,
+        0.03886222839355469,
+        0.03218650817871094,
+        0.021457672119140625,
+        0.032901763916015625,
+        0.022172927856445312,
+        0.34928321838378906,
+        0.026702880859375,
+        0.025510787963867188,
+        0.03457069396972656,
+        0.05507469177246094,
+        0.022172927856445312,
+        0.023365020751953125,
+        0.037670135498046875,
+        0.024318695068359375,
+        0.0286102294921875,
+        0.05245208740234375,
+        0.023126602172851562,
+        0.027894973754882812,
+        0.04410743713378906,
+        0.023126602172851562,
+        0.09751319885253906,
+        0.023126602172851562,
+        0.027894973754882812,
+        0.03695487976074219,
+        0.037670135498046875,
+        0.04076957702636719,
+        0.05626678466796875,
+        0.041484832763671875,
+        0.030994415283203125,
+        0.04315376281738281,
+        0.07081031799316406,
+        0.04267692565917969,
+        0.07104873657226562,
+        0.023603439331054688,
+        0.04172325134277344,
+        0.050067901611328125,
+        0.16379356384277344,
+        0.04410743713378906,
+        0.028133392333984375,
+        0.021457672119140625,
+        0.022649765014648438,
+        0.03981590270996094,
+        0.025510787963867188,
+        0.041961669921875,
+        0.19669532775878906,
+        0.025272369384765625,
+        0.04076957702636719
+      ]
+    },
+    "ml": {
+      "predictions": [
+        {
+          "category": "Food & Dining",
+          "latency_ms": 2.288341522216797
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.7402172088623047
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.3997554779052734
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.0821819305419922
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.0671615600585938
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.1258125305175781
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.0781288146972656
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.0688304901123047
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.3740062713623047
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.245260238647461
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.226663589477539
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.1153221130371094
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2977123260498047
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.491546630859375
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.3051033020019531
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.0750293731689453
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.4050006866455078
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.222372055053711
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.0404586791992188
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.33514404296875
+        },
+        {
+          "category": "Healthcare",
+          "latency_ms": 10.01882553100586
+        },
+        {
+          "category": "Financial",
+          "latency_ms": 1.4338493347167969
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.5344619750976562
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.516580581665039
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.1050701141357422
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.4541149139404297
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.5785694122314453
+        },
+        {
+          "category": "Utilities",
+          "latency_ms": 1.070261001586914
+        },
+        {
+          "category": "Utilities",
+          "latency_ms": 1.2841224670410156
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.0750293731689453
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.0881423950195312
+        },
+        {
+          "category": "Utilities",
+          "latency_ms": 1.3616085052490234
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.5289783477783203
+        },
+        {
+          "category": "Fuel",
+          "latency_ms": 2.070188522338867
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 2.172231674194336
+        },
+        {
+          "category": "Utilities",
+          "latency_ms": 1.5804767608642578
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.6701221466064453
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.4791488647460938
+        },
+        {
+          "category": "Entertainment",
+          "latency_ms": 1.2941360473632812
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.1820793151855469
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2331008911132812
+        },
+        {
+          "category": "Fuel",
+          "latency_ms": 1.219034194946289
+        },
+        {
+          "category": "Healthcare",
+          "latency_ms": 1.168966293334961
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.7428398132324219
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.5358924865722656
+        },
+        {
+          "category": "Transportation",
+          "latency_ms": 1.3246536254882812
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.0983943939208984
+        },
+        {
+          "category": "Education",
+          "latency_ms": 1.5137195587158203
+        },
+        {
+          "category": "Financial",
+          "latency_ms": 1.438140869140625
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2807846069335938
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2774467468261719
+        },
+        {
+          "category": "Shopping",
+          "latency_ms": 1.4693737030029297
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2445449829101562
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.1408329010009766
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.1475086212158203
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.138448715209961
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.6014575958251953
+        },
+        {
+          "category": "Food & Dining",
+          "latency_ms": 1.2729167938232422
+        },
+        {
+          "category": "Healthcare",
+          "latency_ms": 1.287698745727539
+        },
+        {
+          "category": "Others",
+          "latency_ms": 1.1930465698242188
+        }
+      ],
+      "times": [
+        2.288341522216797,
+        1.7402172088623047,
+        1.3997554779052734,
+        1.0821819305419922,
+        1.0671615600585938,
+        1.1258125305175781,
+        1.0781288146972656,
+        1.0688304901123047,
+        1.3740062713623047,
+        1.245260238647461,
+        1.226663589477539,
+        1.1153221130371094,
+        1.2977123260498047,
+        1.491546630859375,
+        1.3051033020019531,
+        1.0750293731689453,
+        1.4050006866455078,
+        1.222372055053711,
+        1.0404586791992188,
+        1.33514404296875,
+        10.01882553100586,
+        1.4338493347167969,
+        1.5344619750976562,
+        1.516580581665039,
+        1.1050701141357422,
+        1.4541149139404297,
+        1.5785694122314453,
+        1.070261001586914,
+        1.2841224670410156,
+        1.0750293731689453,
+        1.0881423950195312,
+        1.3616085052490234,
+        1.5289783477783203,
+        2.070188522338867,
+        2.172231674194336,
+        1.5804767608642578,
+        1.6701221466064453,
+        1.4791488647460938,
+        1.2941360473632812,
+        1.1820793151855469,
+        1.2331008911132812,
+        1.219034194946289,
+        1.168966293334961,
+        1.7428398132324219,
+        1.5358924865722656,
+        1.3246536254882812,
+        1.0983943939208984,
+        1.5137195587158203,
+        1.438140869140625,
+        1.2807846069335938,
+        1.2774467468261719,
+        1.4693737030029297,
+        1.2445449829101562,
+        1.1408329010009766,
+        1.1475086212158203,
+        1.138448715209961,
+        1.6014575958251953,
+        1.2729167938232422,
+        1.287698745727539,
+        1.1930465698242188
+      ]
+    },
+    "llm": {
+      "predictions": [
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 27863.657236099243
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 18526.60346031189
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17148.415088653564
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15771.26932144165
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17512.507677078247
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16663.829565048218
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16291.382312774658
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17681.742668151855
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16277.830123901367
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17467.06199645996
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17102.046489715576
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16280.497789382935
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16846.809148788452
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 20043.17331314087
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15820.165872573853
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16405.78603744507
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15709.715127944946
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16385.49041748047
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16449.828386306763
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16681.470155715942
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16128.334760665894
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 18846.908569335938
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15498.388290405273
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15375.791549682617
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16128.215074539185
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15720.60751914978
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15564.897775650024
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15504.541397094727
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15562.533378601074
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 11200.523138046265
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15722.822189331055
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16369.693279266357
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 20221.137523651123
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16913.052082061768
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 19872.761249542236
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 18683.06875228882
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16326.431035995483
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16403.44548225403
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15676.218748092651
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16625.92339515686
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16290.028810501099
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16695.81413269043
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16339.558124542236
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15660.779237747192
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15975.82983970642
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15811.981678009033
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16071.72703742981
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16455.02018928528
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 20927.53767967224
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17375.74791908264
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15397.022724151611
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16036.816120147705
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17595.580339431763
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 20578.52602005005
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15337.147951126099
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16805.08303642273
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 16788.118362426758
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 17088.54365348816
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15911.149501800537
+        },
+        {
+          "type": "OTHER",
+          "amount": 0,
+          "category": "Other",
+          "vendor": "Unknown",
+          "latency_ms": 15133.538246154785
+        }
+      ],
+      "times": [
+        27863.657236099243,
+        18526.60346031189,
+        17148.415088653564,
+        15771.26932144165,
+        17512.507677078247,
+        16663.829565048218,
+        16291.382312774658,
+        17681.742668151855,
+        16277.830123901367,
+        17467.06199645996,
+        17102.046489715576,
+        16280.497789382935,
+        16846.809148788452,
+        20043.17331314087,
+        15820.165872573853,
+        16405.78603744507,
+        15709.715127944946,
+        16385.49041748047,
+        16449.828386306763,
+        16681.470155715942,
+        16128.334760665894,
+        18846.908569335938,
+        15498.388290405273,
+        15375.791549682617,
+        16128.215074539185,
+        15720.60751914978,
+        15564.897775650024,
+        15504.541397094727,
+        15562.533378601074,
+        11200.523138046265,
+        15722.822189331055,
+        16369.693279266357,
+        20221.137523651123,
+        16913.052082061768,
+        19872.761249542236,
+        18683.06875228882,
+        16326.431035995483,
+        16403.44548225403,
+        15676.218748092651,
+        16625.92339515686,
+        16290.028810501099,
+        16695.81413269043,
+        16339.558124542236,
+        15660.779237747192,
+        15975.82983970642,
+        15811.981678009033,
+        16071.72703742981,
+        16455.02018928528,
+        20927.53767967224,
+        17375.74791908264,
+        15397.022724151611,
+        16036.816120147705,
+        17595.580339431763,
+        20578.52602005005,
+        15337.147951126099,
+        16805.08303642273,
+        16788.118362426758,
+        17088.54365348816,
+        15911.149501800537,
+        15133.538246154785
+      ]
+    },
+    "ground_truth": [
+      {
+        "type": "UPI",
+        "amount": 499.0,
+        "category": "Food & Dining",
+        "vendor": "SWIGGY"
+      },
+      {
+        "type": "UPI",
+        "amount": 1250.0,
+        "category": "Food & Dining",
+        "vendor": "ZOMATO"
+      },
+      {
+        "type": "UPI",
+        "amount": 2500.0,
+        "category": "Income",
+        "vendor": "JOHN DOE"
+      },
+      {
+        "type": "UPI",
+        "amount": 899.0,
+        "category": "Shopping",
+        "vendor": "AMAZON"
+      },
+      {
+        "type": "UPI",
+        "amount": 350.0,
+        "category": "Transportation",
+        "vendor": "OLA"
+      },
+      {
+        "type": "UPI",
+        "amount": 1599.0,
+        "category": "Shopping",
+        "vendor": "FLIPKART"
+      },
+      {
+        "type": "UPI",
+        "amount": 799.0,
+        "category": "Transportation",
+        "vendor": "UBER"
+      },
+      {
+        "type": "UPI",
+        "amount": 2999.0,
+        "category": "Shopping",
+        "vendor": "MYNTRA"
+      },
+      {
+        "type": "UPI",
+        "amount": 450.0,
+        "category": "Transportation",
+        "vendor": "RAPIDO"
+      },
+      {
+        "type": "UPI",
+        "amount": 199.0,
+        "category": "Food & Dining",
+        "vendor": "CHAI POINT"
+      },
+      {
+        "type": "UPI",
+        "amount": 1500.0,
+        "category": "Shopping",
+        "vendor": "BIGBASKET"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 4999.0,
+        "category": "Shopping",
+        "vendor": "CROMA"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 12500.0,
+        "category": "Shopping",
+        "vendor": "VIJAY SALES"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 3499.0,
+        "category": "Shopping",
+        "vendor": "NYKAA.COM"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 8999.0,
+        "category": "Shopping",
+        "vendor": "TANISHQ"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 1850.0,
+        "category": "Entertainment",
+        "vendor": "PVR CINEMAS"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 25000.0,
+        "category": "Shopping",
+        "vendor": "APPLE STORE"
+      },
+      {
+        "type": "CREDIT_CARD",
+        "amount": 599.0,
+        "category": "Food & Dining",
+        "vendor": "DOMINOS"
+      },
+      {
+        "type": "DEBIT_CARD",
+        "amount": 2350.0,
+        "category": "Shopping",
+        "vendor": "DECATHLON"
+      },
+      {
+        "type": "DEBIT_CARD",
+        "amount": 890.0,
+        "category": "Shopping",
+        "vendor": "RELIANCE FRESH"
+      },
+      {
+        "type": "DEBIT_CARD",
+        "amount": 1250.0,
+        "category": "Healthcare",
+        "vendor": "APOLLO PHARMACY"
+      },
+      {
+        "type": "DEBIT_CARD",
+        "amount": 5000.0,
+        "category": "Cash Withdrawal",
+        "vendor": "HDFC ATM ANDHERI"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 199.0,
+        "category": "Entertainment",
+        "vendor": "NETFLIX"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 119.0,
+        "category": "Entertainment",
+        "vendor": "SPOTIFY"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 1499.0,
+        "category": "Shopping",
+        "vendor": "AMAZON PRIME"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 299.0,
+        "category": "Entertainment",
+        "vendor": "HOTSTAR"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 129.0,
+        "category": "Entertainment",
+        "vendor": "YOUTUBE PREMIUM"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 599.0,
+        "category": "Utilities",
+        "vendor": "JIO"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 749.0,
+        "category": "Utilities",
+        "vendor": "AIRTEL"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 1599.0,
+        "category": "Education",
+        "vendor": "LINKEDIN PREMIUM"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 15000.0,
+        "category": "Rent",
+        "vendor": "LANDLORD"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 5000.0,
+        "category": "Utilities",
+        "vendor": "ELECTRICITY BOARD"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 50000.0,
+        "category": "Income",
+        "vendor": "XYZ COMPANY"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 2500.0,
+        "category": "Utilities",
+        "vendor": "GAS AGENCY"
+      },
+      {
+        "type": "UPI",
+        "amount": 500.0,
+        "category": "Wallet Top-up",
+        "vendor": "PAYTM WALLET"
+      },
+      {
+        "type": "UPI",
+        "amount": 200.0,
+        "category": "Transportation",
+        "vendor": "METRO RECHARGE"
+      },
+      {
+        "type": "OTHER",
+        "amount": 458.0,
+        "category": "Food & Dining",
+        "vendor": "SWIGGY"
+      },
+      {
+        "type": "OTHER",
+        "amount": 672.0,
+        "category": "Food & Dining",
+        "vendor": "ZOMATO"
+      },
+      {
+        "type": "OTHER",
+        "amount": 2499.0,
+        "category": "Shopping",
+        "vendor": "AMAZON"
+      },
+      {
+        "type": "OTHER",
+        "amount": 1899.0,
+        "category": "Shopping",
+        "vendor": "FLIPKART"
+      },
+      {
+        "type": "OTHER",
+        "amount": 2345.0,
+        "category": "Utilities",
+        "vendor": "TATA POWER"
+      },
+      {
+        "type": "OTHER",
+        "amount": 890.0,
+        "category": "Utilities",
+        "vendor": "MAHANAGAR GAS"
+      },
+      {
+        "type": "OTHER",
+        "amount": 800.0,
+        "category": "Healthcare",
+        "vendor": "APOLLO HOSPITALS"
+      },
+      {
+        "type": "OTHER",
+        "amount": 456.0,
+        "category": "Healthcare",
+        "vendor": "1MG"
+      },
+      {
+        "type": "OTHER",
+        "amount": 2150.0,
+        "category": "Transportation",
+        "vendor": "IRCTC"
+      },
+      {
+        "type": "OTHER",
+        "amount": 5678.0,
+        "category": "Transportation",
+        "vendor": "MAKEMYTRIP"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 12999.0,
+        "category": "Education",
+        "vendor": "BYJU'S"
+      },
+      {
+        "type": "SUBSCRIPTION",
+        "amount": 999.0,
+        "category": "Education",
+        "vendor": "UNACADEMY"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 123456.78,
+        "category": "Income",
+        "vendor": "NEFT TRANSFER"
+      },
+      {
+        "type": "UPI",
+        "amount": 999.0,
+        "category": "Food & Dining",
+        "vendor": "STARBUCKS"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 50000.0,
+        "category": "Income",
+        "vendor": "PARENT"
+      },
+      {
+        "type": "UPI",
+        "amount": 1234.56,
+        "category": "Shopping",
+        "vendor": "KIRANA STORE"
+      },
+      {
+        "type": "UPI",
+        "amount": 567.0,
+        "category": "Services",
+        "vendor": "ELECTRICIAN"
+      },
+      {
+        "type": "UPI",
+        "amount": 2345.0,
+        "category": "Other",
+        "vendor": "MER123456"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 890.0,
+        "category": "Rent",
+        "vendor": "RENT"
+      },
+      {
+        "type": "UPI",
+        "amount": 4567.0,
+        "category": "Food & Dining",
+        "vendor": "MILKMAN"
+      },
+      {
+        "type": "NET_BANKING",
+        "amount": 1234567.89,
+        "category": "Income",
+        "vendor": "SALARY ACCOUNT"
+      },
+      {
+        "type": "UPI",
+        "amount": 50000.0,
+        "category": "Income",
+        "vendor": "FRIEND"
+      },
+      {
+        "type": "UPI",
+        "amount": 0.01,
+        "category": "Other",
+        "vendor": "test@ybl"
+      },
+      {
+        "type": "DEBIT_CARD",
+        "amount": 99999.0,
+        "category": "Cash Withdrawal",
+        "vendor": "ATM UNKNOWN LOCATION"
+      }
+    ]
+  }
+}
